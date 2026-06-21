@@ -84,6 +84,8 @@
     header { flex-wrap: wrap; padding: 12px 16px; }
     header .logo { font-size: 16px; }
     header .manual-link { font-size: 11.5px; padding: 4px 10px; }
+    .tab-bar { padding: 12px 16px 0; gap: 2px; }
+    .tab-btn { padding: 9px 12px; font-size: 12.5px; }
   }
 
   /* ── TABS ── */
@@ -93,7 +95,13 @@
     padding: 16px 24px 0;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
+  .tab-bar::-webkit-scrollbar { height: 4px; }
+  .tab-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   .tab-btn {
     padding: 10px 20px;
     background: none;
@@ -106,6 +114,7 @@
     transition: all 0.15s;
     margin-bottom: -1px;
     font-family: inherit;
+    flex-shrink: 0;
   }
   .tab-btn:hover { color: var(--text); }
   .tab-btn.active {
@@ -764,9 +773,10 @@
 </header>
 
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('input', this)">① 새 판정 입력</button>
-  <button class="tab-btn" onclick="switchTab('records', this)">② 기록 목록</button>
-  <button class="tab-btn" onclick="switchTab('help', this)">③ 사용 방법</button>
+  <button class="tab-btn active" onclick="switchTab('input', this)">① 1단계 판정</button>
+  <button class="tab-btn" onclick="switchTab('stage2', this)">② 2단계 점검</button>
+  <button class="tab-btn" onclick="switchTab('records', this)">③ 기록 목록</button>
+  <button class="tab-btn" onclick="switchTab('help', this)">④ 사용 방법</button>
 </div>
 
 <!-- ═══════════════ TAB ① 입력 ═══════════════ -->
@@ -1048,7 +1058,147 @@
   <div id="result-area"></div>
 </div>
 
-<!-- ═══════════════ TAB ② 기록 ═══════════════ -->
+<!-- ═══════════════ TAB ② 2단계 점검 ═══════════════ -->
+<div id="tab-stage2" class="tab-panel">
+
+  <div class="onboarding-box">
+    <h4>🧭 2단계는 판정기가 아니라 "작업대"입니다</h4>
+    <p style="font-size:12.5px; color:var(--text-muted); line-height:1.7">
+      1단계는 숫자를 넣으면 점수와 등급이 자동으로 나옵니다. 하지만 2단계(밸류에이션, 재무 건전성, 시장 맥락, 포지션 크기)는
+      자동으로 답이 나오는 영역이 아닙니다. <strong style="color:var(--text)">여기서는 아무 항목도 점수화되거나 자동 판정되지 않습니다.</strong>
+      직접 확인한 내용을 적어두고, 마지막 결론도 본인이 직접 텍스트로 씁니다.
+    </p>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">A · 1단계를 통과한 종목</div>
+    <div id="stage2-candidates"></div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">B · 점검할 종목 선택</div>
+    <div class="field-grid">
+      <div class="field">
+        <label>종목 선택</label>
+        <select id="s2-ticker-select" onchange="loadStage2Form()">
+          <option value="">직접 입력 ↓</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>종목명 <span class="req">*</span></label>
+        <input type="text" id="s2-ticker" placeholder="예: VRT, 삼성전기">
+      </div>
+      <div class="field">
+        <label>점검 날짜</label>
+        <input type="date" id="s2-date">
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">C · 밸류에이션 확인 (기록용, 자동 판정 없음)</div>
+    <div class="field-grid">
+      <div class="field">
+        <label>현재 PER <span class="opt">(선택)</span></label>
+        <input type="number" id="s2-per" placeholder="예: 28" step="0.1">
+      </div>
+      <div class="field">
+        <label>동종업계 평균 PER <span class="opt">(선택)</span></label>
+        <input type="number" id="s2-per-industry" placeholder="예: 20" step="0.1">
+      </div>
+    </div>
+    <div class="field" style="margin-top:12px">
+      <label>이 가격이 병목을 이미 반영했다고 보는가? — 직접 판단해서 메모</label>
+      <textarea id="s2-valuation-note" placeholder="예: PER이 업계 평균보다 40% 높음. 이미 선반영된 것으로 보임. 또는: 아직 업계 평균 수준, 추가 상승 여력 있어 보임"></textarea>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">D · 재무 건전성 확인 (기록용, 자동 판정 없음)</div>
+    <div class="field-grid triple">
+      <div class="field">
+        <label>부채비율 <span class="opt">(선택)</span></label>
+        <select id="s2-debt">
+          <option value="확인안함">확인 안 함</option>
+          <option value="안전">안전한 수준</option>
+          <option value="보통">보통</option>
+          <option value="높음">높은 편</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>현금흐름 <span class="opt">(선택)</span></label>
+        <select id="s2-cashflow">
+          <option value="확인안함">확인 안 함</option>
+          <option value="양호">양호 (영업현금흐름 흑자)</option>
+          <option value="보통">보통</option>
+          <option value="우려">우려됨</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>최근 실적 서프라이즈 <span class="opt">(선택)</span></label>
+        <select id="s2-surprise">
+          <option value="확인안함">확인 안 함</option>
+          <option value="긍정">긍정적</option>
+          <option value="부합">예상 부합</option>
+          <option value="부정">부정적</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">E · 시장 전체 맥락 (직접 메모)</div>
+    <div class="field">
+      <label>지금 전체 시장 분위기는 어떤가? (자유 메모)</label>
+      <textarea id="s2-market-note" placeholder="예: 코스피 9000 돌파 후 과열 우려 있음. 또는: 최근 조정으로 진입 부담 낮아짐"></textarea>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">F · 포지션 크기 (직접 결정)</div>
+    <div class="field-grid">
+      <div class="field">
+        <label>이 종목에 배분할 비중 (%) <span class="opt">(선택, 메모용)</span></label>
+        <input type="number" id="s2-position" placeholder="예: 5" step="0.5" min="0" max="100">
+      </div>
+      <div class="field">
+        <label>비중을 그렇게 정한 이유</label>
+        <input type="text" id="s2-position-reason" placeholder="예: 전체 포트폴리오의 5% 한도 내에서 시작">
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">G · 최종 결론 (반드시 본인이 직접 작성)</div>
+    <div class="field-grid">
+      <div class="field">
+        <label>결론 <span class="req">*</span></label>
+        <select id="s2-conclusion">
+          <option value="">선택하세요</option>
+          <option value="산다">산다</option>
+          <option value="기다린다">기다린다</option>
+          <option value="안산다">안 산다</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin-top:12px">
+      <label>이유 <span class="req">*</span></label>
+      <textarea id="s2-conclusion-note" placeholder="왜 이렇게 결론 내렸는지 직접 적어두세요. 나중에 다시 볼 때 그 당시 판단 근거를 기억하는 데 도움이 됩니다."></textarea>
+    </div>
+  </div>
+
+  <button class="submit-btn" onclick="saveStage2()" style="background:var(--c-green)">정리하기 (점검 기록 저장)</button>
+
+  <div id="stage2-result-area"></div>
+
+  <div class="section-card" style="margin-top:24px">
+    <div class="section-title">2단계 점검 기록</div>
+    <div id="stage2-records-list"></div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ TAB ③ 기록 ═══════════════ -->
 <div id="tab-records" class="tab-panel">
   <div class="backup-notice">
     <span class="icon">⚠️</span>
@@ -1244,6 +1394,7 @@
    STORAGE
 ═══════════════════════════════════════ */
 const STORAGE_KEY = 'bottleneck_records';
+const STAGE2_KEY  = 'bottleneck_stage2_records';
 
 function loadRecords() {
   try {
@@ -1252,6 +1403,14 @@ function loadRecords() {
 }
 function saveRecords(records) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+function loadStage2Records() {
+  try {
+    return JSON.parse(localStorage.getItem(STAGE2_KEY) || '[]');
+  } catch(e) { return []; }
+}
+function saveStage2Records(records) {
+  localStorage.setItem(STAGE2_KEY, JSON.stringify(records));
 }
 function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -1355,9 +1514,9 @@ function verdictColor(v) {
   return map[v] || '#9ca3af';
 }
 
-function getPrevRecord(records, ticker, date) {
+function getPrevRecord(records, ticker, sector, date) {
   const sorted = records
-    .filter(r => r.ticker === ticker && r.date < date)
+    .filter(r => r.ticker === ticker && r.sector === sector && r.date < date)
     .sort((a, b) => a.date < b.date ? -1 : 1);
   return sorted.length ? sorted[sorted.length - 1] : null;
 }
@@ -1382,6 +1541,7 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
   if (name === 'records') renderRecords();
+  if (name === 'stage2') renderStage2Tab();
 }
 
 /* ═══════════════════════════════════════
@@ -1468,7 +1628,7 @@ function runJudge() {
   const interp  = getInterpretation(verdict, d);
 
   const records = loadRecords();
-  const prev    = getPrevRecord(records, ticker, date);
+  const prev    = getPrevRecord(records, ticker, sector, date);
   const prevScore = prev ? prev.score : null;
   const delta   = (prevScore !== null && typeof score === 'number') ? score - prevScore : null;
   const cause   = getChangeCause(d, prev);
@@ -1637,6 +1797,177 @@ function toggleBreakdown(btn) {
 }
 
 /* ═══════════════════════════════════════
+   STAGE 2 — 후보 압축 다음의 점검 작업대
+   (자동 판정 없음. 전부 기록/메모 용도)
+═══════════════════════════════════════ */
+function getStage1Candidates() {
+  const records = loadRecords();
+  // 섹터+종목 기준 가장 최근 기록만, "강한 구조적 병목" 또는 "진입 검토"인 것만
+  const latestByKey = {};
+  records.forEach(r => {
+    const key = r.sector + '|' + r.ticker;
+    if (!latestByKey[key] || r.date > latestByKey[key].date) {
+      latestByKey[key] = r;
+    }
+  });
+  return Object.values(latestByKey)
+    .filter(r => r.verdict === '강한 구조적 병목' || r.verdict === '진입 검토')
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
+}
+
+function renderStage2Tab() {
+  renderStage2Candidates();
+  renderStage2TickerOptions();
+  renderStage2Records();
+  // default date to today if empty
+  const dateEl = document.getElementById('s2-date');
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+}
+
+function renderStage2Candidates() {
+  const candidates = getStage1Candidates();
+  const el = document.getElementById('stage2-candidates');
+  if (!candidates.length) {
+    el.innerHTML = `<div class="empty-state" style="padding:30px 20px">
+      <p>아직 1단계에서 "강한 구조적 병목" 또는 "진입 검토"가 나온 종목이 없습니다.<br>① 1단계 판정 탭에서 먼저 종목을 입력해 보세요.</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = `<div style="display:flex; flex-direction:column; gap:8px">` +
+    candidates.map(r => {
+      const col = verdictColor(r.verdict);
+      return `<div class="record-item" style="cursor:pointer" onclick="pickStage2Ticker('${r.ticker.replace(/'/g, "\\'")}')">
+        <div class="record-row">
+          <span class="record-verdict-dot" style="background:${col}"></span>
+          <span class="record-ticker">${r.ticker}</span>
+          <span class="record-sector">${r.sector}</span>
+          <span class="record-verdict-text" style="background:${col}">${r.verdict}</span>
+          <span class="record-score">${typeof r.score === 'number' ? r.score + '점' : '—'}</span>
+          <span class="record-date" style="margin-left:auto">1단계 최근: ${r.date}</span>
+        </div>
+      </div>`;
+    }).join('') + `</div>
+    <p style="font-size:11.5px; color:var(--text-dim); margin-top:10px">종목을 누르면 아래 B 항목에 자동으로 채워집니다.</p>`;
+}
+
+function renderStage2TickerOptions() {
+  const candidates = getStage1Candidates();
+  const select = document.getElementById('s2-ticker-select');
+  const current = select.value;
+  select.innerHTML = '<option value="">직접 입력 ↓</option>' +
+    candidates.map(r => `<option value="${r.ticker}">${r.ticker} (${r.sector})</option>`).join('');
+  select.value = current;
+}
+
+function pickStage2Ticker(ticker) {
+  document.getElementById('s2-ticker-select').value = ticker;
+  loadStage2Form();
+  document.getElementById('s2-ticker').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function loadStage2Form() {
+  const ticker = document.getElementById('s2-ticker-select').value;
+  if (!ticker) return;
+  document.getElementById('s2-ticker').value = ticker;
+  // 기존 2단계 기록이 있으면 마지막 기록 내용을 불러와 이어서 수정할 수 있게 함
+  const records = loadStage2Records();
+  const existing = records.filter(r => r.ticker === ticker).sort((a, b) => a.date < b.date ? 1 : -1)[0];
+  if (existing) {
+    document.getElementById('s2-per').value = existing.per ?? '';
+    document.getElementById('s2-per-industry').value = existing.perIndustry ?? '';
+    document.getElementById('s2-valuation-note').value = existing.valuationNote ?? '';
+    document.getElementById('s2-debt').value = existing.debt ?? '확인안함';
+    document.getElementById('s2-cashflow').value = existing.cashflow ?? '확인안함';
+    document.getElementById('s2-surprise').value = existing.surprise ?? '확인안함';
+    document.getElementById('s2-market-note').value = existing.marketNote ?? '';
+    document.getElementById('s2-position').value = existing.position ?? '';
+    document.getElementById('s2-position-reason').value = existing.positionReason ?? '';
+    document.getElementById('s2-conclusion').value = existing.conclusion ?? '';
+    document.getElementById('s2-conclusion-note').value = existing.conclusionNote ?? '';
+  }
+}
+
+function saveStage2() {
+  const ticker = strVal('s2-ticker');
+  const date   = strVal('s2-date') || new Date().toISOString().slice(0, 10);
+  const conclusion = strVal('s2-conclusion');
+  const conclusionNote = strVal('s2-conclusion-note');
+
+  clearErr('s2-ticker'); clearErr('s2-conclusion'); clearErr('s2-conclusion-note');
+  let valid = true;
+  if (!ticker) { setErr('s2-ticker'); valid = false; }
+  if (!conclusion) { setErr('s2-conclusion'); valid = false; }
+  if (!conclusionNote) { setErr('s2-conclusion-note'); valid = false; }
+  if (!valid) {
+    showToast('종목명, 결론, 결론 이유는 반드시 입력해야 합니다.');
+    return;
+  }
+
+  const record = {
+    id: genId(), ticker, date,
+    per: numOrNull('s2-per'),
+    perIndustry: numOrNull('s2-per-industry'),
+    valuationNote: strVal('s2-valuation-note'),
+    debt: strVal('s2-debt'),
+    cashflow: strVal('s2-cashflow'),
+    surprise: strVal('s2-surprise'),
+    marketNote: strVal('s2-market-note'),
+    position: numOrNull('s2-position'),
+    positionReason: strVal('s2-position-reason'),
+    conclusion, conclusionNote,
+  };
+
+  const records = loadStage2Records();
+  records.push(record);
+  saveStage2Records(records);
+  renderStage2Records();
+  showToast('2단계 점검 기록이 저장되었습니다. (자동 판정 아님 — 직접 적은 메모입니다)');
+}
+
+function renderStage2Records() {
+  const records = loadStage2Records().slice().sort((a, b) => a.date < b.date ? 1 : -1);
+  const el = document.getElementById('stage2-records-list');
+  if (!records.length) {
+    el.innerHTML = `<div class="empty-state"><p>아직 2단계 점검 기록이 없습니다.</p></div>`;
+    return;
+  }
+  const conclusionColor = { '산다': '#16a34a', '기다린다': '#ca8a04', '안산다': '#6b7280' };
+  el.innerHTML = records.map(r => {
+    const col = conclusionColor[r.conclusion] || '#6b7280';
+    const perLine = (r.per !== null || r.perIndustry !== null)
+      ? `PER: ${r.per ?? '미입력'} (업계 평균 ${r.perIndustry ?? '미입력'})<br>` : '';
+    return `
+    <div class="record-item">
+      <div class="record-row">
+        <span class="record-verdict-dot" style="background:${col}"></span>
+        <span class="record-ticker">${r.ticker}</span>
+        <span class="record-verdict-text" style="background:${col}">${r.conclusion}</span>
+        <span class="record-date" style="margin-left:auto">${r.date}</span>
+        <button class="record-expand-btn" onclick="toggleDetail(this)">⋯</button>
+      </div>
+      <div class="record-detail">
+        ${perLine}
+        ${r.valuationNote ? `밸류에이션 메모: ${r.valuationNote}<br><br>` : ''}
+        부채비율: ${r.debt} / 현금흐름: ${r.cashflow} / 실적 서프라이즈: ${r.surprise}<br>
+        ${r.marketNote ? `시장 맥락 메모: ${r.marketNote}<br><br>` : ''}
+        ${r.position !== null ? `배분 비중: ${r.position}% (${r.positionReason || '이유 미입력'})<br><br>` : ''}
+        <strong>결론 이유:</strong> ${r.conclusionNote}
+        <br><br>
+        <button onclick="deleteStage2Record('${r.id}')" style="background:none;border:1px solid #444;color:#888;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit">이 기록 삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deleteStage2Record(id) {
+  if (!confirm('이 2단계 점검 기록을 삭제할까요?')) return;
+  let records = loadStage2Records().filter(r => r.id !== id);
+  saveStage2Records(records);
+  renderStage2Records();
+  showToast('기록이 삭제되었습니다.');
+}
+
+/* ═══════════════════════════════════════
    RECORDS
 ═══════════════════════════════════════ */
 function renderRecords() {
@@ -1709,16 +2040,26 @@ function deleteRecord(id) {
    JSON IO
 ═══════════════════════════════════════ */
 function exportJSON() {
-  const records = loadRecords();
-  if (!records.length) { showToast('내보낼 기록이 없습니다.'); return; }
-  const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+  const stage1Records = loadRecords();
+  const stage2Records = loadStage2Records();
+  if (!stage1Records.length && !stage2Records.length) {
+    showToast('내보낼 기록이 없습니다.');
+    return;
+  }
+  const backup = {
+    version: '2.0',
+    exportedAt: new Date().toISOString(),
+    stage1Records,
+    stage2Records,
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href = url;
   a.download = 'bottleneck_records_' + new Date().toISOString().slice(0,10) + '.json';
   a.click();
   URL.revokeObjectURL(url);
-  showToast('JSON 파일로 내보냈습니다.');
+  showToast('1단계·2단계 기록을 모두 JSON 파일로 내보냈습니다.');
 }
 
 function importJSON(event) {
@@ -1727,15 +2068,36 @@ function importJSON(event) {
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const imported = JSON.parse(e.target.result);
-      if (!Array.isArray(imported)) throw new Error();
-      const existing = loadRecords();
-      const existingIds = new Set(existing.map(r => r.id));
-      const merged = [...existing, ...imported.filter(r => !existingIds.has(r.id))];
-      merged.sort((a, b) => a.date < b.date ? -1 : 1);
-      saveRecords(merged);
+      const parsed = JSON.parse(e.target.result);
+
+      // 신버전: { version, stage1Records, stage2Records }
+      // 구버전(이전에 내보낸 파일): 배열 하나 = 1단계 기록만
+      let importedStage1, importedStage2;
+      if (Array.isArray(parsed)) {
+        importedStage1 = parsed;
+        importedStage2 = [];
+      } else if (parsed && typeof parsed === 'object') {
+        importedStage1 = Array.isArray(parsed.stage1Records) ? parsed.stage1Records : [];
+        importedStage2 = Array.isArray(parsed.stage2Records) ? parsed.stage2Records : [];
+      } else {
+        throw new Error('형식 불일치');
+      }
+
+      const existing1 = loadRecords();
+      const existingIds1 = new Set(existing1.map(r => r.id));
+      const merged1 = [...existing1, ...importedStage1.filter(r => !existingIds1.has(r.id))];
+      merged1.sort((a, b) => a.date < b.date ? -1 : 1);
+      saveRecords(merged1);
+
+      const existing2 = loadStage2Records();
+      const existingIds2 = new Set(existing2.map(r => r.id));
+      const merged2 = [...existing2, ...importedStage2.filter(r => !existingIds2.has(r.id))];
+      saveStage2Records(merged2);
+
       renderRecords();
-      showToast(`${imported.length}개 기록을 불러왔습니다.`);
+      if (document.getElementById('tab-stage2').classList.contains('active')) renderStage2Tab();
+      const totalImported = importedStage1.length + importedStage2.length;
+      showToast(`1단계 ${importedStage1.length}개, 2단계 ${importedStage2.length}개 기록을 불러왔습니다.`);
     } catch {
       showToast('올바른 JSON 파일이 아닙니다.');
     }

@@ -236,10 +236,11 @@
       <li><a href="#submit">⑩ 판정하기 누르기</a></li>
       <li><a href="#read-order">⑪ 결과, 무엇을 먼저 볼까</a></li>
       <li><a href="#verdicts">⑫ 판정 결과 읽는 법</a></li>
-      <li><a href="#records">⑬ 기록 목록 보기</a></li>
-      <li><a href="#backup">⑭ 데이터 백업 (중요)</a></li>
-      <li><a href="#routine">⑮ 실제 사용 루틴</a></li>
-      <li><a href="#limits">⑯ 이 프로그램의 한계</a></li>
+      <li><a href="#stage2">⑬ 2단계 점검 탭 사용법</a></li>
+      <li><a href="#records">⑭ 기록 목록 보기</a></li>
+      <li><a href="#backup">⑮ 데이터 백업 (중요)</a></li>
+      <li><a href="#routine">⑯ 실제 사용 루틴</a></li>
+      <li><a href="#limits">⑰ 이 프로그램의 한계</a></li>
     </ol>
   </nav>
 
@@ -264,7 +265,7 @@
       <li>마우스로 두 번 클릭합니다.</li>
       <li>크롬, 엣지 같은 인터넷 브라우저가 자동으로 열립니다.</li>
     </ol>
-    <p>설치할 것도 회원가입할 것도 없습니다. 화면 위 탭 3개(① 새 판정 입력 / ② 기록 목록 / ③ 사용 방법) 중 ①번이 먼저 열려 있습니다.</p>
+    <p>설치할 것도 회원가입할 것도 없습니다. 화면 위 탭 4개(① 1단계 판정 / ② 2단계 점검 / ③ 기록 목록 / ④ 사용 방법) 중 ①번이 먼저 열려 있습니다.</p>
   </section>
 
   <section id="sector">
@@ -309,7 +310,7 @@
 
   <section id="basic-input">
     <h2><span class="num">5</span>기본 정보 입력</h2>
-    <p><strong>① 새 판정 입력</strong> 탭의 <strong>A · 기본 정보</strong> 칸에서 날짜·섹터·종목을 입력합니다.</p>
+    <p><strong>① 1단계 판정</strong> 탭의 <strong>A · 기본 정보</strong> 칸에서 날짜·섹터·종목을 입력합니다.</p>
     <div class="callout warn">
       <strong>중요</strong>: 같은 종목을 다음에 또 입력할 때는 섹터·종목 이름을 <strong>지난번과 정확히 똑같이</strong> 써야 합니다. "VRT"로 썼으면 계속 "VRT", "Vertiv"나 "버티브"로 바꾸면 직전 점수 비교가 깨집니다.
     </div>
@@ -412,26 +413,46 @@
     </div>
   </section>
 
+  <section id="stage2">
+    <h2><span class="num">13</span>② 2단계 점검 탭 — 후보 압축 다음의 작업대</h2>
+    <p>1단계에서 "강한 구조적 병목" 또는 "진입 검토"가 나왔다고 바로 사도 되는 건 아닙니다. 그 결과는 <strong>"더 들여다볼 가치가 있다"</strong>는 뜻일 뿐입니다.</p>
+    <div class="callout warn">
+      <strong>2단계는 1단계와 완전히 다른 성격의 탭입니다.</strong> 1단계는 숫자를 넣으면 점수와 등급이 자동으로 나옵니다. 2단계(밸류에이션, 재무 건전성, 시장 맥락, 포지션 크기)는 <strong>아무것도 점수화되거나 자동 판정되지 않습니다.</strong> 직접 확인한 내용을 적어두는 작업대일 뿐이고, 버튼 이름도 "판정하기"가 아니라 <strong>"정리하기"</strong>입니다.
+    </div>
+    <h3>사용 순서</h3>
+    <ol>
+      <li><strong>"② 2단계 점검"</strong> 탭을 누르면, 1단계에서 좋은 등급을 받은 종목들이 위쪽 목록에 자동으로 떠 있습니다. 그 종목을 클릭하면 아래 입력칸에 종목명이 자동으로 채워집니다.</li>
+      <li><strong>밸류에이션 확인</strong>: 그 종목의 현재 PER과 동종업계 평균 PER을 찾아 입력합니다 (네이버증권, StockAnalysis 등). 그리고 "이 가격이 병목을 이미 반영했다고 보는지" 직접 판단해서 메모합니다.</li>
+      <li><strong>재무 건전성 확인</strong>: 부채비율, 현금흐름, 최근 실적 서프라이즈를 확인한 만큼만 선택합니다. 모르면 "확인 안 함"으로 두면 됩니다.</li>
+      <li><strong>시장 전체 맥락</strong>: 지금 전체 증시 분위기가 어떤지 자유롭게 메모합니다.</li>
+      <li><strong>포지션 크기</strong>: 이 종목에 전체 자산의 몇 %를 배분할지 직접 정합니다. 이건 순전히 본인의 리스크 감내 수준에 달린 문제라, 도구가 정해줄 수 없습니다.</li>
+      <li><strong>최종 결론</strong>: "산다 / 기다린다 / 안 산다" 중 하나를 고르고, <strong>왜 그렇게 결론 내렸는지 반드시 직접 적습니다.</strong> 이 이유 메모가 나중에 가장 중요한 자료가 됩니다.</li>
+      <li><strong>"정리하기"</strong> 버튼을 누르면 기록됩니다. 점수나 등급이 나오지 않는다는 점이 1단계와 다릅니다 — 정상입니다.</li>
+    </ol>
+    <p style="font-size:12px; color:var(--text-dim)">같은 종목을 다시 점검할 때 종목을 선택하면, 마지막에 적어둔 내용이 불러와집니다. 시간이 지나며 생각이 바뀌었다면 수정해서 다시 저장하면 됩니다.</p>
+  </section>
+
   <section id="records">
-    <h2><span class="num">13</span>기록 목록 보기</h2>
-    <p>위쪽 <strong>"② 기록 목록"</strong> 탭을 누르면 지금까지 입력한 모든 종목이 한 줄씩 쌓여 있습니다.</p>
+    <h2><span class="num">14</span>③ 기록 목록 보기</h2>
+    <p>위쪽 <strong>"③ 기록 목록"</strong> 탭을 누르면 지금까지 입력한 모든 종목이 한 줄씩 쌓여 있습니다.</p>
     <ul>
       <li>종목 이름을 검색창에 치면 그 종목만 골라 볼 수 있습니다</li>
       <li>줄 오른쪽 <strong>"⋯"</strong> 버튼을 누르면 자세한 내용이 펼쳐집니다</li>
       <li>같은 종목을 두 번 이상 입력했다면, 지난번 대비 점수가 올랐는지 내렸는지도 같이 보여줍니다</li>
     </ul>
+    <p style="font-size:12px; color:var(--text-dim)">이 목록은 1단계 판정 기록입니다. 2단계 점검 기록은 "② 2단계 점검" 탭 안에 별도로 쌓입니다.</p>
   </section>
 
   <section id="backup">
-    <h2><span class="num">14</span>데이터 백업 (꼭 기억하세요)</h2>
+    <h2><span class="num">15</span>데이터 백업 (꼭 기억하세요)</h2>
     <div class="callout warn">
       이 프로그램은 입력한 기록을 <strong>지금 쓰고 있는 이 컴퓨터, 이 브라우저 안에만</strong> 저장합니다. 다른 컴퓨터나 휴대폰에서 열면 기록이 안 보이고, 브라우저 기록을 지우면 같이 사라집니다.
     </div>
-    <p>그래서 <strong>"② 기록 목록"</strong> 탭의 <strong>"JSON 내보내기"</strong> 버튼을 가끔 눌러서 파일로 따로 저장해 두세요. 다른 컴퓨터에서 보고 싶으면 "JSON 불러오기"로 그 파일을 불러오면 됩니다.</p>
+    <p>그래서 <strong>"③ 기록 목록"</strong> 탭의 <strong>"JSON 내보내기"</strong> 버튼을 가끔 눌러서 파일로 따로 저장해 두세요. 다른 컴퓨터에서 보고 싶으면 "JSON 불러오기"로 그 파일을 불러오면 됩니다.</p>
   </section>
 
   <section id="routine">
-    <h2><span class="num">15</span>실제 사용 루틴</h2>
+    <h2><span class="num">16</span>실제 사용 루틴</h2>
     <p>이 프로그램은 매일 사용할 필요가 없습니다. <strong>일요일 저녁 30분</strong> 정도면 충분합니다.</p>
     <div class="step-box"><div class="step-title">1. 관심 종목 5개 선정</div></div>
     <div class="step-box"><div class="step-title">2. 최신 실적 확인</div></div>
@@ -443,7 +464,7 @@
   </section>
 
   <section id="limits">
-    <h2><span class="num">16</span>이 프로그램의 한계</h2>
+    <h2><span class="num">17</span>이 프로그램의 한계</h2>
     <table>
       <tr><th>해주는 것</th><th>못 해주는 것</th></tr>
       <tr><td>병목 신호 정리<br>데이터 구조화<br>실적 검증</td><td>매수 타이밍<br>매도 타이밍<br>목표 주가<br>적정 가치 계산</td></tr>
