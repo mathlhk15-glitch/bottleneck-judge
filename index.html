@@ -52,6 +52,7 @@
     top: 0;
     z-index: 100;
   }
+  header > div:first-child { flex: 1; }
   header .logo {
     font-size: 18px;
     font-weight: 700;
@@ -59,6 +60,17 @@
     letter-spacing: -0.3px;
   }
   header .logo span { color: var(--accent); }
+  header .manual-link {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  header .manual-link:hover { color: var(--accent); border-color: var(--accent); }
   header .version {
     font-size: 11px;
     color: var(--text-muted);
@@ -67,6 +79,11 @@
     border-radius: 20px;
     border: 1px solid var(--accent);
     opacity: 0.7;
+  }
+  @media (max-width: 560px) {
+    header { flex-wrap: wrap; padding: 12px 16px; }
+    header .logo { font-size: 16px; }
+    header .manual-link { font-size: 11.5px; padding: 4px 10px; }
   }
 
   /* ── TABS ── */
@@ -742,6 +759,7 @@
   <div>
     <div class="logo">뀨의 <span>병목 투자 판정기</span></div>
   </div>
+  <a href="manual.html" target="_blank" class="manual-link">📖 사용 설명서</a>
   <span class="version">v2.0</span>
 </header>
 
@@ -1066,6 +1084,14 @@
 
 <!-- ═══════════════ TAB ③ 사용 방법 ═══════════════ -->
 <div id="tab-help" class="tab-panel">
+
+  <div class="onboarding-box" style="margin-bottom:20px">
+    <h4>📖 클릭 경로까지 담은 전체 사용 설명서</h4>
+    <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:12px">
+      아래 내용은 핵심 요약입니다. 화면 어디를 눌러야 하는지, 데이터를 어디서 찾는지까지 단계별로 자세히 설명한 전체 설명서는 별도 페이지에 있습니다.
+    </p>
+    <a href="manual.html" target="_blank" class="submit-btn" style="display:inline-block; text-decoration:none; width:auto; padding:10px 24px; font-size:13.5px;">전체 사용 설명서 열기 →</a>
+  </div>
 
   <div class="help-section">
     <h3>이 판정기는 무엇을 하는 도구인가</h3>

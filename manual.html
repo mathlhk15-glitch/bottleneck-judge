@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사용 설명서 — 뀨의 병목 투자 판정기</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1e2336;
+    --border: #2a2f45;
+    --text: #e2e6f0;
+    --text-muted: #7a8099;
+    --text-dim: #4a5068;
+    --accent: #4f7aff;
+    --accent-dim: #1e2d5c;
+
+    --c-green: #16a34a;
+    --c-green-light: #4d9e68;
+    --c-red: #dc2626;
+    --c-orange: #ea580c;
+
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header .logo { font-size: 17px; font-weight: 700; }
+  header .logo span { color: var(--accent); }
+  .back-link {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .back-link:hover { color: var(--text); border-color: var(--accent); }
+
+  main { max-width: 760px; margin: 0 auto; padding: 28px 24px 80px; }
+
+  .manifesto {
+    background: linear-gradient(135deg, var(--accent-dim), var(--surface2));
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    margin-bottom: 28px;
+    font-size: 14.5px;
+    line-height: 1.8;
+  }
+  .manifesto strong { color: var(--text); }
+
+  nav.toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 28px;
+  }
+  nav.toc h2 { font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+  nav.toc ol { list-style: none; columns: 2; gap: 8px; }
+  @media (max-width: 560px) { nav.toc ol { columns: 1; } }
+  nav.toc li { margin-bottom: 6px; }
+  nav.toc a { color: var(--text-muted); text-decoration: none; font-size: 13px; }
+  nav.toc a:hover { color: var(--accent); }
+
+  section { margin-bottom: 36px; scroll-margin-top: 70px; }
+  section h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  section h2 .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  section h3 { font-size: 14px; font-weight: 700; color: var(--accent); margin: 18px 0 8px; }
+  section p { color: var(--text-muted); margin-bottom: 10px; }
+  section ul, section ol { padding-left: 20px; margin-bottom: 10px; color: var(--text-muted); }
+  section li { margin-bottom: 6px; }
+  section strong { color: var(--text); }
+  code {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 12.5px;
+    color: var(--c-green-light);
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  }
+
+  .callout {
+    background: var(--surface2);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .callout.warn { border-left-color: var(--c-orange); }
+  .callout.danger { border-left-color: var(--c-red); }
+  .callout strong { color: var(--text); }
+
+  .step-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 12px;
+  }
+  .step-box .step-title { font-weight: 700; color: var(--text); margin-bottom: 6px; font-size: 13.5px; }
+
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    margin: 12px 0;
+  }
+  .flow .pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+  }
+  .flow .pill.bad { color: var(--c-red); border-color: var(--c-red); }
+  .flow .pill.good { color: var(--c-green-light); border-color: var(--c-green); }
+  .flow .arrow { color: var(--text-dim); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+  th { text-align: left; padding: 8px 12px; background: var(--surface2); color: var(--text-muted); font-weight: 600; border: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 8px 12px; border: 1px solid var(--border); color: var(--text-muted); vertical-align: top; }
+  td:first-child { color: var(--text); font-weight: 600; }
+
+  .sector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+  @media (max-width: 560px) { .sector-grid { grid-template-columns: 1fr; } }
+  .sector-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
+  .sector-card .sector-name { font-weight: 700; color: var(--accent); font-size: 12.5px; margin-bottom: 6px; }
+  .sector-card ul { margin: 0; padding-left: 16px; }
+  .sector-card li { color: var(--text-muted); font-size: 13px; }
+
+  .priority-list { list-style: none; padding: 0; }
+  .priority-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .priority-list li:last-child { border-bottom: none; }
+  .priority-list .rank {
+    flex-shrink: 0;
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 12px;
+    width: 50px;
+  }
+
+  footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-dim);
+    font-size: 11px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">뀨의 <span>병목 투자 판정기</span> — 사용 설명서</div>
+  <a class="back-link" href="index.html">← 판정기로 돌아가기</a>
+</header>
+
+<main>
+
+  <div class="manifesto">
+    이 프로그램의 목적은 <strong>"좋은 종목을 찾는 것"</strong>이 아니라, <strong>"왜 이 산업이 부족해지고 있는가?"를 숫자로 검증하는 것</strong>입니다.
+    점수보다 중요한 것은 공급 부족의 원인을 이해하는 것입니다.
+  </div>
+
+  <nav class="toc">
+    <h2>목차</h2>
+    <ol>
+      <li><a href="#why">① 이 프로그램으로 무엇을 얻나요</a></li>
+      <li><a href="#open">② 파일 여는 방법</a></li>
+      <li><a href="#sector">③ 종목보다 섹터 먼저</a></li>
+      <li><a href="#minimal">④ 처음엔 이것만 입력</a></li>
+      <li><a href="#basic-input">⑤ 기본 정보 입력</a></li>
+      <li><a href="#finance">⑥ 재무 숫자 채우기</a></li>
+      <li><a href="#leadtime">⑦ 리드타임 채우기</a></li>
+      <li><a href="#leadtime-fail">⑧ 리드타임 못 찾을 때</a></li>
+      <li><a href="#qualitative">⑨ 나머지 항목 — 모르면 모름</a></li>
+      <li><a href="#submit">⑩ 판정하기 누르기</a></li>
+      <li><a href="#read-order">⑪ 결과, 무엇을 먼저 볼까</a></li>
+      <li><a href="#verdicts">⑫ 판정 결과 읽는 법</a></li>
+      <li><a href="#records">⑬ 기록 목록 보기</a></li>
+      <li><a href="#backup">⑭ 데이터 백업 (중요)</a></li>
+      <li><a href="#routine">⑮ 실제 사용 루틴</a></li>
+      <li><a href="#limits">⑯ 이 프로그램의 한계</a></li>
+    </ol>
+  </nav>
+
+  <section id="why">
+    <h2><span class="num">1</span>이 프로그램으로 무엇을 얻나요?</h2>
+    <p>많은 투자자는 뉴스가 나온 뒤에 종목을 발견합니다. "AI 슈퍼사이클", "제2의 반도체", "없어서 못 판다" 같은 기사를 보고서야 관심을 갖습니다. 하지만 이런 뉴스가 나올 때는 이미 주가가 많이 오른 경우가 많습니다.</p>
+    <p>이 프로그램은 뉴스를 따라가는 것이 아니라, <strong>"왜 공급이 부족해졌는가?"</strong>를 먼저 찾기 위해 만들어졌습니다.</p>
+    <div class="flow">
+      <span class="pill bad">뉴스</span><span class="arrow">→</span><span class="pill bad">매수</span>
+      <span style="color:var(--text-dim); margin:0 8px">는 틀린 순서입니다</span>
+    </div>
+    <div class="flow">
+      <span class="pill good">공급 부족</span><span class="arrow">→</span><span class="pill good">실적 개선</span><span class="arrow">→</span><span class="pill good">뉴스</span>
+      <span style="color:var(--text-dim); margin:0 8px">이 순서를 추적합니다</span>
+    </div>
+  </section>
+
+  <section id="open">
+    <h2><span class="num">2</span>파일 여는 방법</h2>
+    <ol>
+      <li><code>index.html</code> 파일이 있는 폴더를 찾습니다.</li>
+      <li>마우스로 두 번 클릭합니다.</li>
+      <li>크롬, 엣지 같은 인터넷 브라우저가 자동으로 열립니다.</li>
+    </ol>
+    <p>설치할 것도 회원가입할 것도 없습니다. 화면 위 탭 3개(① 새 판정 입력 / ② 기록 목록 / ③ 사용 방법) 중 ①번이 먼저 열려 있습니다.</p>
+  </section>
+
+  <section id="sector">
+    <h2><span class="num">3</span>처음에는 종목보다 섹터를 먼저 선택하세요</h2>
+    <p>초보자는 종목부터 고르려는 경향이 있습니다. 하지만 이 프로그램은 반대로 사용해야 합니다. 먼저 관심 있는 섹터(업종)를 정한 뒤, 그 안에서 대표 기업을 골라 입력하세요.</p>
+    <div class="sector-grid">
+      <div class="sector-card">
+        <div class="sector-name">AI 인프라</div>
+        <ul><li>VRT</li><li>ETN</li><li>GEV</li></ul>
+      </div>
+      <div class="sector-card">
+        <div class="sector-name">전력망</div>
+        <ul><li>효성중공업</li><li>LS ELECTRIC</li><li>HD현대일렉트릭</li></ul>
+      </div>
+      <div class="sector-card">
+        <div class="sector-name">MLCC</div>
+        <ul><li>삼성전기</li></ul>
+      </div>
+      <div class="sector-card">
+        <div class="sector-name">원전</div>
+        <ul><li>BWXT</li><li>두산에너빌리티</li></ul>
+      </div>
+    </div>
+    <p style="font-size:12px; color:var(--text-dim)">※ 예시 목록입니다. 실제 입력 전 최신 정보로 직접 확인하세요.</p>
+  </section>
+
+  <section id="minimal">
+    <h2><span class="num">4</span>초보자는 이것만 입력해도 됩니다</h2>
+    <p>처음부터 모든 항목을 채우려고 하지 마세요. 아래 순서로 늘려가면 됩니다.</p>
+    <table>
+      <tr><th>단계</th><th>항목</th></tr>
+      <tr><td>반드시 입력</td><td>전년 OPM, 현재 OPM, 매출 증가율</td></tr>
+      <tr><td>가능하면 입력</td><td>리드타임 (평소·현재)</td></tr>
+      <tr><td>익숙해지면</td><td>수주잔고, LTA, 가격 인상, 중국 추격 가능성</td></tr>
+    </table>
+    <div class="callout">
+      <strong>예시 — 처음 사용 시 이만큼만 넣어도 충분합니다</strong><br>
+      전년 OPM = 15 · 현재 OPM = 22 · 매출 증가율 = 25 · 리드타임 = 8주 → 20주
+    </div>
+    <p style="font-size:12px; color:var(--text-dim)">단, 리드타임·전년OPM·현재OPM·매출증가율·평소기준시점은 시스템상 필수 항목입니다. 비워두면 "판정 불가"로 표시됩니다.</p>
+  </section>
+
+  <section id="basic-input">
+    <h2><span class="num">5</span>기본 정보 입력</h2>
+    <p><strong>① 새 판정 입력</strong> 탭의 <strong>A · 기본 정보</strong> 칸에서 날짜·섹터·종목을 입력합니다.</p>
+    <div class="callout warn">
+      <strong>중요</strong>: 같은 종목을 다음에 또 입력할 때는 섹터·종목 이름을 <strong>지난번과 정확히 똑같이</strong> 써야 합니다. "VRT"로 썼으면 계속 "VRT", "Vertiv"나 "버티브"로 바꾸면 직전 점수 비교가 깨집니다.
+    </div>
+  </section>
+
+  <section id="finance">
+    <h2><span class="num">6</span>재무 숫자 채우기 (네이버증권에서 찾기)</h2>
+    <h3>찾는 방법</h3>
+    <ol>
+      <li><code>finance.naver.com</code> 으로 들어갑니다.</li>
+      <li>검색창에 종목 이름을 입력하고, 결과에서 종목을 클릭합니다.</li>
+      <li>"종목분석" 또는 "재무분석" 탭을 클릭합니다.</li>
+      <li>표에서 "영업이익률" 줄을 찾습니다. 연도별 숫자가 나옵니다.</li>
+    </ol>
+    <h3>입력하기</h3>
+    <ul>
+      <li><strong>전년 OPM (%)</strong>: 작년 영업이익률. 예) 15.0% → <code>15</code> 입력 (% 기호는 빼고)</li>
+      <li><strong>현재 OPM (%)</strong>: 가장 최근 분기(또는 올해) 영업이익률. 예) <code>22</code></li>
+      <li><strong>매출 증가율 (%)</strong>: "매출액증가율" 항목 또는 직접 계산 <code>(올해 매출-작년 매출)÷작년 매출×100</code>. 예) <code>25</code></li>
+    </ul>
+    <p>모르겠으면 입력칸 라벨 옆 동그란 <strong>"?"</strong> 버튼을 누르세요. 설명과 검색어 예시가 펼쳐집니다.</p>
+  </section>
+
+  <section id="leadtime">
+    <h2><span class="num">7</span>리드타임 채우기</h2>
+    <p><strong>리드타임</strong>은 "주문하고 나서 실제로 물건을 받기까지 걸리는 시간"입니다. 이게 길어지면 수요가 공급을 초과하고 있다는 뜻이고, 이게 이 판정기의 핵심 지표입니다.</p>
+    <h3>찾는 방법</h3>
+    <ol>
+      <li>구글이나 네이버에 검색: <code>삼성전기 MLCC 리드타임</code> (국내) 또는 <code>VRT lead time</code> (미국, 영어로)</li>
+      <li>증권사 리포트나 뉴스 기사를 클릭해 봅니다.</li>
+      <li>"리드타임이 8주에서 20주로 늘었다" 같은 문장을 찾으면 그 숫자를 씁니다.</li>
+    </ol>
+    <h3>입력하기</h3>
+    <ul>
+      <li><strong>평소 리드타임 (주)</strong>: 정상적이던 시기 평균 납기. 예) <code>8</code></li>
+      <li><strong>평소 기준 시점</strong>: 그 "평소"가 언제 기준인지 메모. 예) <code>2024년 평균</code></li>
+      <li><strong>현재 리드타임 (주)</strong>: 최근 확인한 납기. 예) <code>20</code></li>
+    </ul>
+  </section>
+
+  <section id="leadtime-fail">
+    <h2><span class="num">8</span>리드타임을 못 찾을 때 대처법</h2>
+    <p>초보자가 가장 많이 막히는 부분입니다. 아래 순서로 찾아보세요.</p>
+    <ul class="priority-list">
+      <li><span class="rank">1순위</span><span>증권사 리포트</span></li>
+      <li><span class="rank">2순위</span><span>산업 전문 기사 (전자신문, 디일렉 등)</span></li>
+      <li><span class="rank">3순위</span><span>기업 IR 자료</span></li>
+      <li><span class="rank">4순위</span><span>컨퍼런스콜 녹취록 ("lead time", "backlog" 검색)</span></li>
+    </ul>
+    <div class="callout warn">
+      <strong>그래도 없으면</strong>: 그 종목은 일단 후보 목록에만 적어두고 다른 종목으로 넘어가세요. 리드타임을 찾기 어려운 산업은 병목 여부 자체를 판단하기 어렵습니다. 이 항목은 필수 항목이라, 비워두면 판정 자체가 "판정 불가"로 나옵니다.
+    </div>
+  </section>
+
+  <section id="qualitative">
+    <h2><span class="num">9</span>나머지 항목 — 모르면 당당하게 "모름"</h2>
+    <ul>
+      <li><strong>수주잔고 증가율</strong>: 아직 납품 안 한 주문이 얼마나 늘었나. DART(국내) 사업보고서나 IR 자료에서 "수주잔고" 검색. <strong>못 찾으면 비워두세요</strong> — 빈칸은 감점되지 않습니다.</li>
+      <li><strong>가격 인상</strong>: 최근 가격을 올렸다는 뉴스·IR 언급이 있으면 "있음", 없으면 "없음", 모르면 "모름"</li>
+      <li><strong>LTA (장기공급계약)</strong>: 고객과 몇 년짜리 장기계약을 맺었다는 소식이 있으면 "있음", 없으면 "모름"</li>
+      <li><strong>중국 추격 가능성</strong>: 중국 회사가 비슷한 제품을 이미 만들고 있으면 "높음", 기술 격차가 크면 "낮음", 모르면 "모름"</li>
+      <li><strong>언론 과열</strong>: 최근 2주 내 네이버뉴스에서 "슈퍼사이클", "제2의 반도체", "사상 최대" 같은 제목이 반복 등장하면 "있음", 아니면 "없음"</li>
+    </ul>
+    <p>모든 항목의 <strong>(?)</strong> 버튼을 눌러보세요. 판단 기준과 검색어 예시가 바로 나옵니다.</p>
+  </section>
+
+  <section id="submit">
+    <h2><span class="num">10</span>"판정하기" 버튼 누르기</h2>
+    <p>화면 맨 아래 파란색 <strong>"판정하기 →"</strong> 버튼을 누르면 바로 아래에 결과 카드가 나타납니다. "항목별 점수 내역 ▼" 버튼을 누르면 어떤 항목에서 몇 점을 받았는지 세부 내역이 펼쳐집니다.</p>
+    <p style="font-size:12px; color:var(--text-dim)">(선택) 맨 아래 "데이터 출처 메모" 칸에 어디서 숫자를 확인했는지 적어두면, 나중에 다시 볼 때 도움이 됩니다. 안 적어도 판정에는 영향 없습니다.</p>
+  </section>
+
+  <section id="read-order">
+    <h2><span class="num">11</span>결과, 무엇을 먼저 볼까 — 점수보다 중요한 순서</h2>
+    <p>많은 사람이 점수만 봅니다. 하지만 점수는 사실 가장 마지막에 봐야 합니다.</p>
+    <ul class="priority-list">
+      <li><span class="rank">1순위</span><span><strong>최종 판정</strong> — "경고", "테마주 제한" 같은 강제 판정이 있는지 먼저 확인</span></li>
+      <li><span class="rank">2순위</span><span><strong>OPM 변화</strong> — 영업이익률이 오르고 있는지</span></li>
+      <li><span class="rank">3순위</span><span><strong>리드타임 변화</strong> — 공급 부족이 실제로 진행 중인지</span></li>
+      <li><span class="rank">4순위</span><span><strong>점수</strong> — 위 세 가지를 확인한 다음에 참고용으로 봅니다</span></li>
+    </ul>
+    <div class="callout danger">
+      <strong>기억할 것</strong>: 이 판정기에서 현재 OPM이 전년보다 낮으면, 다른 항목이 아무리 좋아도 점수와 무관하게 자동으로 "경고 / 진입 금지"가 뜹니다. 즉 점수가 높게 나왔다는 것 자체가 이미 OPM이 상승했다는 뜻입니다. <strong>점수보다 OPM이 먼저</strong>라는 원칙이 시스템에 그대로 반영돼 있습니다.
+    </div>
+  </section>
+
+  <section id="verdicts">
+    <h2><span class="num">12</span>판정 결과 읽는 법</h2>
+    <table>
+      <tr><th>결과</th><th>뜻</th></tr>
+      <tr><td>강한 구조적 병목</td><td>신호가 강합니다. 다만 "사야 한다"는 뜻이 아니라 "좀 더 살펴볼 가치가 있다"는 뜻입니다.</td></tr>
+      <tr><td>진입 검토 / 후보 등록 / 관찰</td><td>아직 약하거나 데이터가 더 필요합니다. 계속 지켜보세요.</td></tr>
+      <tr><td>투자 보류</td><td>지금은 신호가 부족합니다.</td></tr>
+      <tr><td>경고 / 진입 금지</td><td>영업이익률이 떨어졌습니다. 다른 게 다 좋아 보여도 일단 멈추세요.</td></tr>
+      <tr><td>테마주 제한</td><td>중국이 빠르게 따라올 수 있는 분야입니다. 점수는 정상 표시되지만, 장기 투자로는 위험하다는 경고입니다.</td></tr>
+      <tr><td>판정 불가</td><td>필수 항목 중 빈칸이 있습니다. 위로 올라가서 빠진 칸을 채우세요.</td></tr>
+    </table>
+    <div class="callout">
+      이 판정기는 "사라/팔아라"를 말해주는 도구가 아닙니다. <strong>판단에 참고할 자료를 정리해주는 도구</strong>입니다. 최종 결정은 본인이 합니다.
+    </div>
+  </section>
+
+  <section id="records">
+    <h2><span class="num">13</span>기록 목록 보기</h2>
+    <p>위쪽 <strong>"② 기록 목록"</strong> 탭을 누르면 지금까지 입력한 모든 종목이 한 줄씩 쌓여 있습니다.</p>
+    <ul>
+      <li>종목 이름을 검색창에 치면 그 종목만 골라 볼 수 있습니다</li>
+      <li>줄 오른쪽 <strong>"⋯"</strong> 버튼을 누르면 자세한 내용이 펼쳐집니다</li>
+      <li>같은 종목을 두 번 이상 입력했다면, 지난번 대비 점수가 올랐는지 내렸는지도 같이 보여줍니다</li>
+    </ul>
+  </section>
+
+  <section id="backup">
+    <h2><span class="num">14</span>데이터 백업 (꼭 기억하세요)</h2>
+    <div class="callout warn">
+      이 프로그램은 입력한 기록을 <strong>지금 쓰고 있는 이 컴퓨터, 이 브라우저 안에만</strong> 저장합니다. 다른 컴퓨터나 휴대폰에서 열면 기록이 안 보이고, 브라우저 기록을 지우면 같이 사라집니다.
+    </div>
+    <p>그래서 <strong>"② 기록 목록"</strong> 탭의 <strong>"JSON 내보내기"</strong> 버튼을 가끔 눌러서 파일로 따로 저장해 두세요. 다른 컴퓨터에서 보고 싶으면 "JSON 불러오기"로 그 파일을 불러오면 됩니다.</p>
+  </section>
+
+  <section id="routine">
+    <h2><span class="num">15</span>실제 사용 루틴</h2>
+    <p>이 프로그램은 매일 사용할 필요가 없습니다. <strong>일요일 저녁 30분</strong> 정도면 충분합니다.</p>
+    <div class="step-box"><div class="step-title">1. 관심 종목 5개 선정</div></div>
+    <div class="step-box"><div class="step-title">2. 최신 실적 확인</div></div>
+    <div class="step-box"><div class="step-title">3. OPM 업데이트</div></div>
+    <div class="step-box"><div class="step-title">4. 리드타임 확인</div></div>
+    <div class="step-box"><div class="step-title">5. 판정기에 입력</div></div>
+    <div class="step-box"><div class="step-title">6. 지난 기록과 비교</div></div>
+    <p>3개월 정도만 반복해도 "뉴스를 따라가는 투자"에서 "공급 부족을 먼저 보는 투자"로 사고방식이 바뀝니다.</p>
+  </section>
+
+  <section id="limits">
+    <h2><span class="num">16</span>이 프로그램의 한계</h2>
+    <table>
+      <tr><th>해주는 것</th><th>못 해주는 것</th></tr>
+      <tr><td>병목 신호 정리<br>데이터 구조화<br>실적 검증</td><td>매수 타이밍<br>매도 타이밍<br>목표 주가<br>적정 가치 계산</td></tr>
+    </table>
+    <p>이 프로그램은 <strong>투자 결정을 대신 내려주는 프로그램이 아니라, 투자 판단에 필요한 데이터를 정리해주는 프로그램</strong>입니다.</p>
+  </section>
+
+</main>
+
+<footer>
+  뀨의 병목 투자 판정기 — 사용 설명서 · 이 도구는 투자 판단 보조 도구입니다. 매수·매도 지시가 아닙니다.
+</footer>
+
+</body>
+</html>
