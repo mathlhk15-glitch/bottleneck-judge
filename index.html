@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뀨의 병목 투자 판정기 v2.0</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1e2336;
+    --border: #2a2f45;
+    --text: #e2e6f0;
+    --text-muted: #7a8099;
+    --text-dim: #4a5068;
+    --accent: #4f7aff;
+    --accent-dim: #1e2d5c;
+
+    --c-green: #16a34a;
+    --c-green-light: #4d9e68;
+    --c-blue: #2563eb;
+    --c-gray: #6b7280;
+    --c-gray-light: #9ca3af;
+    --c-red: #dc2626;
+    --c-orange: #ea580c;
+    --c-yellow: #ca8a04;
+
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header .logo {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  header .logo span { color: var(--accent); }
+  header .version {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--accent-dim);
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--accent);
+    opacity: 0.7;
+  }
+
+  /* ── TABS ── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    padding: 16px 24px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .tab-btn {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.15s;
+    margin-bottom: -1px;
+    font-family: inherit;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ── LAYOUT ── */
+  .tab-panel { display: none; padding: 24px; max-width: 800px; margin: 0 auto; }
+  .tab-panel.active { display: block; }
+
+  /* ── SECTION CARD ── */
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── FORM ── */
+  .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .field-grid.triple { grid-template-columns: 1fr 1fr 1fr; }
+  .field-grid.quad { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .field-grid.full { grid-template-columns: 1fr; }
+  @media (max-width: 560px) {
+    .field-grid, .field-grid.triple, .field-grid.quad { grid-template-columns: 1fr 1fr; }
+  }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .field label .req { color: var(--c-red); margin-left: 2px; }
+  .field label .opt { color: var(--text-dim); font-size: 11px; }
+
+  /* ── HELP (?) BUTTON + DETAILS PANEL ── */
+  .help-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    user-select: none;
+    transition: all 0.15s;
+    margin-left: auto;
+  }
+  .help-toggle:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+  details.field-help {
+    margin-top: 2px;
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+  details.field-help summary {
+    display: none; /* the visible toggle is .help-toggle, summary handled via JS */
+  }
+  details.field-help[open] { padding: 0; }
+  .field-help-body {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+  .field-help-body b, .field-help-body strong { color: var(--text); }
+  .field-help-body .fh-label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin: 8px 0 3px;
+  }
+  .field-help-body .fh-label:first-child { margin-top: 0; }
+  .field-help-body code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 11px;
+    color: var(--c-green-light);
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  }
+  .field-help-body .fh-example {
+    color: var(--text-dim);
+    font-size: 11.5px;
+  }
+  .field-help-body ul { padding-left: 16px; margin-top: 2px; }
+  .field-help-body li { margin-bottom: 3px; }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    width: 100%;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  input.error, select.error { border-color: var(--c-red) !important; }
+  input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a8099' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+  }
+
+  /* ── 초보자 입력 순서 안내 박스 ── */
+  .onboarding-box {
+    background: linear-gradient(135deg, var(--accent-dim), var(--surface2));
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .onboarding-box h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .onboarding-steps { display: flex; flex-direction: column; gap: 8px; }
+  .onboarding-step {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .onboarding-step .step-num {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+  .onboarding-step strong { color: var(--text); }
+  .onboarding-principle {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    width: 100%;
+    resize: vertical;
+    min-height: 56px;
+    transition: border-color 0.15s;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+
+  /* ── 검색어 예시 박스 ── */
+  .search-examples {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 560px) { .search-examples { grid-template-columns: 1fr; } }
+  .search-examples-col h4 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .search-examples-col ul { padding-left: 0; list-style: none; }
+  .search-examples-col li {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  }
+
+  /* ── 데이터 가이드 표 (사용방법 탭) ── */
+  .data-guide-table { font-size: 12.5px; }
+  .data-guide-table th { white-space: nowrap; }
+  .data-guide-table td:nth-child(1) { font-weight: 600; color: var(--text); white-space: nowrap; }
+
+  /* ── SUBMIT BUTTON ── */
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 4px;
+    font-family: inherit;
+  }
+  .submit-btn:hover { opacity: 0.88; }
+  .submit-btn:active { opacity: 0.75; }
+
+  /* ── RESULT CARD ── */
+  #result-area { margin-top: 24px; }
+
+  .result-card {
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    animation: slideIn 0.25s ease;
+  }
+  @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  .result-header {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .result-verdict {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .result-ticker {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 2px;
+  }
+  .result-score-badge {
+    background: rgba(0,0,0,0.25);
+    border-radius: 8px;
+    padding: 10px 16px;
+    text-align: center;
+    min-width: 70px;
+  }
+  .result-score-badge .score-num {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+  }
+  .result-score-badge .score-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    margin-top: 2px;
+  }
+
+  /* gauge */
+  .gauge-bar-wrap {
+    padding: 0 20px 16px;
+  }
+  .gauge-track {
+    height: 6px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .gauge-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1);
+    background: rgba(255,255,255,0.7);
+  }
+  .gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  .result-body {
+    background: var(--surface);
+    padding: 16px 20px;
+  }
+  .result-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .stat-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+  }
+  .stat-label { font-size: 11px; color: var(--text-muted); }
+  .stat-value { font-size: 16px; font-weight: 700; color: var(--text); margin-top: 2px; }
+  .stat-value.up { color: #4ade80; }
+  .stat-value.down { color: #f87171; }
+
+  .reliability-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .rel-good { background: #14532d; color: #86efac; }
+  .rel-mid  { background: #713f12; color: #fde68a; }
+  .rel-low  { background: #7f1d1d; color: #fca5a5; }
+
+  .delta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 14px;
+  }
+  .delta-row .arrow { font-size: 18px; color: var(--text-dim); }
+  .delta-num { font-size: 15px; font-weight: 700; }
+  .delta-desc { font-size: 12px; color: var(--text-muted); }
+
+  .interpretation {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+
+  .reliability-note {
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin: -8px 0 14px 2px;
+    line-height: 1.6;
+  }
+
+  .source-note-display {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border-left: 2px solid var(--accent);
+    padding: 8px 12px;
+    margin-bottom: 14px;
+    border-radius: 4px;
+    line-height: 1.6;
+  }
+  .source-note-display strong { color: var(--text); }
+
+  /* score breakdown toggle */
+  .breakdown-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    padding: 7px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .breakdown-toggle:hover { background: var(--surface2); color: var(--text); }
+  .breakdown-note {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .breakdown-body {
+    display: none;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    padding: 10px 14px;
+  }
+  .breakdown-body.open { display: block; }
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-row .item-name { color: var(--text-muted); }
+  .breakdown-row .item-pts {
+    font-weight: 700;
+    min-width: 40px;
+    text-align: right;
+  }
+  .pts-pos { color: #4ade80; }
+  .pts-neg { color: #f87171; }
+  .pts-zero { color: var(--text-dim); }
+
+  /* ── VERDICT COLORS ── */
+  .vc-strong   { background: #14532d; }
+  .vc-enter    { background: #365314; }
+  .vc-candidate{ background: #1e3a8a; }
+  .vc-watch    { background: #374151; }
+  .vc-hold     { background: #1f2937; }
+  .vc-danger   { background: #7f1d1d; }
+  .vc-theme    { background: #7c2d12; }
+  .vc-unknown  { background: #374151; }
+
+  /* ── RECORDS TAB ── */
+  .records-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .records-toolbar input[type="text"] {
+    flex: 1;
+    min-width: 140px;
+  }
+  .records-toolbar select { width: auto; min-width: 140px; }
+
+  .io-btns { display: flex; gap: 8px; }
+  .io-btn {
+    padding: 8px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .io-btn:hover { background: var(--surface); color: var(--text); }
+
+  .backup-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .backup-notice .icon { font-size: 16px; line-height: 1; margin-top: 1px; }
+  .backup-notice strong { color: var(--text); }
+
+  #records-list { display: flex; flex-direction: column; gap: 10px; }
+  .record-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .record-item:hover { border-color: var(--text-dim); }
+  .record-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    flex-wrap: wrap;
+  }
+  .record-verdict-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .record-ticker { font-weight: 700; font-size: 15px; min-width: 70px; }
+  .record-sector { color: var(--text-muted); font-size: 12px; }
+  .record-date   { color: var(--text-dim); font-size: 12px; margin-left: auto; }
+  .record-verdict-text {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    color: #fff;
+  }
+  .record-score { font-weight: 700; font-size: 15px; }
+  .record-delta { font-size: 12px; font-weight: 600; }
+  .record-expand-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 16px;
+    font-family: inherit;
+  }
+  .record-detail {
+    display: none;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .record-detail.open { display: block; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+  }
+  .empty-state .big { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── HELP TAB ── */
+  .help-section { margin-bottom: 24px; }
+  .help-section h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .help-section p, .help-section li {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.8;
+    margin-bottom: 6px;
+  }
+  .help-section ul { padding-left: 18px; }
+  .help-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  .help-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-weight: 600;
+    border: 1px solid var(--border);
+  }
+  .help-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-dim);
+    font-size: 11px;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #222;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 14px;
+    font-size: 13px;
+    border: 1px solid #444;
+    transition: transform 0.25s;
+    z-index: 999;
+    white-space: normal;
+    max-width: min(90vw, 420px);
+    text-align: center;
+    line-height: 1.5;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── MISC ── */
+  .mt-8 { margin-top: 8px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">뀨의 <span>병목 투자 판정기</span></div>
+  </div>
+  <span class="version">v2.0</span>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('input', this)">① 새 판정 입력</button>
+  <button class="tab-btn" onclick="switchTab('records', this)">② 기록 목록</button>
+  <button class="tab-btn" onclick="switchTab('help', this)">③ 사용 방법</button>
+</div>
+
+<!-- ═══════════════ TAB ① 입력 ═══════════════ -->
+<div id="tab-input" class="tab-panel active">
+
+  <div class="onboarding-box">
+    <h4>📋 초보자 입력 순서</h4>
+    <div class="onboarding-steps">
+      <div class="onboarding-step">
+        <span class="step-num">1</span>
+        <span><strong>먼저 재무 숫자부터 입력하세요.</strong> 전년 OPM, 현재 OPM, 매출 증가율 — 네이버증권이나 DART에서 가장 쉽게 찾을 수 있는 항목입니다.</span>
+      </div>
+      <div class="onboarding-step">
+        <span class="step-num">2</span>
+        <span><strong>다음으로 병목 숫자를 입력하세요.</strong> 평소 리드타임, 현재 리드타임, 평소 기준 시점 — 증권사 리포트나 산업 기사에서 확인합니다.</span>
+      </div>
+      <div class="onboarding-step">
+        <span class="step-num">3</span>
+        <span><strong>모르면 "모름" 또는 공란으로 두세요.</strong> 수주잔고 증가율은 못 찾으면 공란, 가격 인상·LTA·중국 추격 가능성은 확신 없으면 모름을 선택합니다.</span>
+      </div>
+    </div>
+    <div class="onboarding-principle">핵심 원칙: 느낌으로 숫자를 만들지 마세요. 모르는 값은 억지로 넣지 않는 것이 더 안전합니다. 각 항목 옆 <span class="help-toggle" style="margin-left:2px">?</span> 버튼을 누르면 어디서 찾는지 바로 볼 수 있습니다.</div>
+  </div>
+
+  <!-- 섹션 A -->
+  <div class="section-card">
+    <div class="section-title">A · 기본 정보</div>
+    <div class="field-grid triple">
+      <div class="field">
+        <label>날짜 <span class="req">*</span></label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="field">
+        <label>섹터 <span class="req">*</span></label>
+        <input type="text" id="f-sector" placeholder="예: 전력망, MLCC">
+      </div>
+      <div class="field">
+        <label>종목 <span class="req">*</span></label>
+        <input type="text" id="f-ticker" placeholder="예: VRT, 삼성전기">
+      </div>
+    </div>
+  </div>
+
+  <!-- 섹션 B -->
+  <div class="section-card">
+    <div class="section-title">B · 병목 지표 (숫자 입력)</div>
+    <div class="field-grid">
+      <div class="field">
+        <label>평소 리드타임 (주) <span class="req">*</span><span class="help-toggle" onclick="toggleHelp(this)">?</span></label>
+        <input type="number" id="f-normal-lt" placeholder="예: 8" min="0.1" step="0.1">
+        <details class="field-help"><div class="field-help-body">
+          <span class="fh-label">뜻</span>
+          제품을 주문한 뒤 실제로 납품받기까지 걸리는 시간입니다. 리드타임이 평소보다 길어지면 수요가 공급을 초과하고 있다는 병목 신호입니다.
+          <span class="fh-label">입력 방법</span>
+          정상 시기 평균 납기(평소)와 최근 확인한 납기(현재)를 주 단위로 입력합니다. <span class="fh-example">예: 평소 8주, 현재 20주 → 20÷8=2.5배</span>
+          <span class="fh-label">찾는 방법</span>
+          <ul>
+            <li>국내주: 증권사 리포트, 기업 IR 자료, DART 사업보고서, 전자신문·디일렉 산업 기사</li>
+            <li>미국주: 기업 IR, Earnings Call Transcript, Seeking Alpha, Motley Fool Transcript</li>
+          </ul>
+          <span class="fh-label">검색어 예시</span>
+          <code>삼성전기 MLCC 리드타임</code> · <code>MLCC lead time</code> · <code>[기업명] earnings call lead time</code>
+          <span class="fh-label">주의</span>
+          가장 중요한 병목 지표지만 찾기 가장 어렵습니다. 확실한 출처가 없으면 느낌으로 입력하지 말고 확인 후 입력하세요.
+        </div></details>
+      </div>
+      <div class="field">
+        <label>평소 기준 시점 <span class="req">*</span><span class="help-toggle" onclick="toggleHelp(this)">?</span></label>
+        <input type="text" id="f-lt-ref" placeholder="예: 2024년 평균">
+        <details class="field-help"><div class="field-help-body">
+          <span class="fh-label">뜻</span>
+          평소 리드타임이 어느 시기를 기준으로 한 값인지 기록하는 칸입니다.
+          <span class="fh-label">입력 예시</span>
+          <code>2024년 평균</code> · <code>2023~2024년 평균</code> · <code>코로나 이전 정상 수준</code> · <code>최근 공급 과잉기 평균</code>
+          <span class="fh-label">주의</span>
+          기준 시점이 없으면 리드타임 배수가 왜곡될 수 있습니다.
+        </div></details>
+      </div>
+      <div class="field">
+        <label>현재 리드타임 (주) <span class="req">*</span></label>
+        <input type="number" id="f-curr-lt" placeholder="예: 20" min="0.1" step="0.1">
+      </div>
+      <div class="field">
+        <label>매출 증가율 % (YoY) <span class="req">*</span><span class="help-toggle" onclick="toggleHelp(this)">?</span></label>
+        <input type="number" id="f-rev" placeholder="예: 25" step="0.1">
+        <details class="field-help"><div class="field-help-body">
+          <span class="fh-label">뜻</span>
+          전년 같은 기간 대비 매출이 얼마나 증가했는지 보여주는 수치입니다. 수요가 실제 매출로 연결되는지 확인하는 지표입니다.
+          <span class="fh-label">입력 방법</span>
+          YoY 증가율을 % 숫자로 입력합니다. <span class="fh-example">예: 전년 동기 대비 25% 증가 → 25, 5% 감소 → -5</span>
+          <span class="fh-label">찾는 방법</span>
+          <ul>
+            <li>국내주: 네이버증권 재무, DART 분기보고서, 기업 실적 발표자료</li>
+            <li>미국주: 기업 Earnings Release, Seeking Alpha, StockAnalysis, 기업 IR</li>
+          </ul>
+          <span class="fh-label">검색어 예시</span>
+          <code>[기업명] revenue growth YoY</code> · <code>[기업명] 매출 증가율</code>
+        </div></details>
+      </div>
+      <div class="field">
+        <label>전년 OPM % <span class="req">*</span><span class="help-toggle" onclick="toggleHelp(this)">?</span></label>
+        <input type="number" id="f-prev-opm" placeholder="예: 15" step="0.1">
+        <details class="field-help"><div class="field-help-body">
+          <span class="fh-label">뜻</span>
+          OPM은 영업이익률입니다. 공식은 <code>영업이익 ÷ 매출액 × 100</code>입니다. 병목이 진짜라면 매출만 늘어나는 것이 아니라 영업이익률도 올라야 합니다.
+          <span class="fh-label">입력 방법</span>
+          전년 OPM(전년도 같은 분기 또는 연간)과 현재 OPM(최근 분기 또는 연간)을 같은 기준으로 비교합니다. <span class="fh-example">둘 다 분기 기준 또는 둘 다 연간 기준으로 통일</span>
+          <span class="fh-label">찾는 방법</span>
+          <ul>
+            <li>국내주: 네이버증권 → 종목분석/재무, DART 분기보고서, FnGuide</li>
+            <li>미국주: StockAnalysis, Macrotrends, Seeking Alpha, 기업 IR</li>
+          </ul>
+          <span class="fh-label">검색어 예시</span>
+          <code>삼성전기 영업이익률</code> · <code>VRT operating margin</code> · <code>[기업명] quarterly operating margin</code>
+          <span class="fh-label">주의</span>
+          현재 OPM이 전년 OPM보다 낮으면 점수와 상관없이 "경고 / 진입 금지"로 판정합니다.
+        </div></details>
+      </div>
+      <div class="field">
+        <label>현재 OPM % <span class="req">*</span></label>
+        <input type="number" id="f-curr-opm" placeholder="예: 22" step="0.1">
+      </div>
+      <div class="field">
+        <label>수주잔고 증가율 % <span class="opt">(선택)</span><span class="help-toggle" onclick="toggleHelp(this)">?</span></label>
+        <input type="number" id="f-backlog" placeholder="모르면 공란" step="0.1">
+        <details class="field-help"><div class="field-help-body">
+          <span class="fh-label">뜻</span>
+          이미 받은 주문 중 아직 납품하거나 매출로 인식하지 않은 물량의 증가율입니다. 미래 매출의 지속성을 보는 지표입니다.
+          <span class="fh-label">입력 방법</span>
+          전년 동기 대비 증가율을 입력합니다. <span class="fh-example">예: 1000억→1500억 증가 → 50</span> 찾을 수 없으면 공란으로 둡니다. 공란은 0점 처리되지만 감점되지 않습니다.
+          <span class="fh-label">찾는 방법</span>
+          <ul>
+            <li>국내주: DART 사업보고서 수주상황·수주잔고, 기업 IR 자료, 실적 발표자료</li>
+            <li>미국주: 10-Q, 10-K, Earnings Presentation, Earnings Call Transcript</li>
+          </ul>
+          <span class="fh-label">검색어 예시</span>
+          <code>효성중공업 수주잔고</code> · <code>VRT backlog</code> · <code>[기업명] order backlog</code>
+          <span class="fh-label">주의</span>
+          수주잔고를 공개하지 않는 기업도 많습니다. 모르면 억지로 추정하지 말고 공란으로 두세요.
+        </div></details>
+      </div>
+    </div>
+  </div>
+
+  <!-- 섹션 C -->
+  <div class="section-card">
+    <div class="section-title">C · 정성 판단</div>
+    <div class="field-grid quad">
+      <div class="field">
+        <label>가격 인상<span class="help-toggle" onclick="toggleHelp(this)">?</span></label>
+        <select id="f-price">
+          <option value="모름">모름</option>
+          <option value="있음">있음</option>
+          <option value="없음">없음</option>
+        </select>
+        <details class="field-help"><div class="field-help-body">
+          <span class="fh-label">뜻</span>
+          회사가 제품 가격을 올릴 수 있는지 확인하는 항목입니다. 병목이 진짜라면 공급자가 가격 결정권을 일부 갖게 됩니다.
+          <span class="fh-label">선택 기준</span>
+          <ul>
+            <li><b>있음</b>: 가격 인상·ASP 상승·pricing power가 IR이나 실적에서 확인된 경우</li>
+            <li><b>없음</b>: 가격 인하 또는 단가 유지가 확인된 경우</li>
+            <li><b>모름</b>: 명확한 언급이 없는 경우</li>
+          </ul>
+          <span class="fh-label">검색어 예시</span>
+          <code>[기업명] price increase</code> · <code>[기업명] pricing power</code> · <code>삼성전기 판가 인상</code>
+        </div></details>
+      </div>
+      <div class="field">
+        <label>LTA (장기공급계약)<span class="help-toggle" onclick="toggleHelp(this)">?</span></label>
+        <select id="f-lta">
+          <option value="모름">모름</option>
+          <option value="있음">있음</option>
+          <option value="없음">없음</option>
+        </select>
+        <details class="field-help"><div class="field-help-body">
+          <span class="fh-label">뜻</span>
+          LTA는 Long-Term Agreement, 장기공급계약입니다. 고객이 일정 기간 물량을 확보하려는 계약이므로 병목 지속성을 보여주는 신호가 될 수 있습니다.
+          <span class="fh-label">선택 기준</span>
+          <ul>
+            <li><b>있음</b>: 장기공급계약·multi-year agreement가 공식 확인된 경우</li>
+            <li><b>없음</b>: 단기 계약만 있거나 명확히 없는 경우</li>
+            <li><b>모름</b>: 확인 불가</li>
+          </ul>
+          <span class="fh-label">검색어 예시</span>
+          <code>[기업명] LTA</code> · <code>[기업명] long term agreement</code> · <code>삼성전기 장기공급계약</code>
+        </div></details>
+      </div>
+      <div class="field">
+        <label>중국 추격 가능성<span class="help-toggle" onclick="toggleHelp(this)">?</span></label>
+        <select id="f-china">
+          <option value="모름">모름</option>
+          <option value="낮음">낮음</option>
+          <option value="보통">보통</option>
+          <option value="높음">높음</option>
+        </select>
+        <details class="field-help"><div class="field-help-body">
+          <span class="fh-label">뜻</span>
+          중국 경쟁사가 같은 제품을 빠르게 저가로 공급할 수 있는지 보는 항목입니다. 가능성이 높으면 병목이 오래 지속되기 어렵습니다.
+          <span class="fh-label">선택 기준</span>
+          <ul>
+            <li><b>낮음</b>: 기술 장벽·특허·인증·규제로 단기간 대체가 어려운 경우 (예: HBM, 정밀 광학)</li>
+            <li><b>보통</b>: 일부 중국 경쟁사가 있지만 품질·인증·고객 신뢰 격차가 있는 경우</li>
+            <li><b>높음</b>: 중국 업체가 이미 유사 제품을 출시했거나 빠르게 증설 중인 경우</li>
+            <li><b>모름</b>: 판단 불가</li>
+          </ul>
+          <span class="fh-label">검색어 예시</span>
+          <code>[산업명] China competition</code> · <code>[제품명] China supply</code> · <code>MLCC 중국 경쟁사</code>
+          <span class="fh-label">주의</span>
+          초보자가 가장 판단하기 어려운 항목입니다. 확신이 없으면 "모름"을 선택하세요. "높음"을 선택하면 점수와 무관하게 "테마주 제한"으로 판정됩니다.
+        </div></details>
+      </div>
+      <div class="field">
+        <label>언론 과열<span class="help-toggle" onclick="toggleHelp(this)">?</span></label>
+        <select id="f-media">
+          <option value="없음">없음</option>
+          <option value="있음">있음</option>
+        </select>
+        <details class="field-help"><div class="field-help-body">
+          <span class="fh-label">뜻</span>
+          대중 언론·유튜브·커뮤니티에서 특정 섹터나 종목이 반복적으로 뜨거운 관심을 받는 상태입니다. 이미 많은 사람이 알고 있다면 추격매수 위험이 커집니다.
+          <span class="fh-label">확인 방법 (직접 검색해서 판단하세요)</span>
+          네이버뉴스 또는 구글뉴스에서 종목명을 검색했을 때, <b>최근 2주 내</b> 헤드라인에 아래 표현 중 하나라도 반복 등장하면 "있음"을 선택합니다.
+          <ul>
+            <li>"슈퍼사이클", "제2의 반도체", "사상 최대", "없어서 못 판다"</li>
+            <li>포털 메인에 관련 기사가 반복 노출</li>
+            <li>유튜브·종토방에서 갑자기 언급 폭증</li>
+          </ul>
+          전문 산업 매체나 IR에서만 조용히 언급되는 수준이면 "없음"을 선택합니다.
+          <span class="fh-label">주의</span>
+          언론 과열은 매도 신호가 아니라 <b>신규 추격매수 금지</b> 신호입니다.
+        </div></details>
+      </div>
+    </div>
+  </div>
+
+  <!-- 섹션 D: 데이터 출처 메모 -->
+  <div class="section-card">
+    <div class="section-title">D · 데이터 출처 메모 <span class="opt">(선택)</span></div>
+    <div class="field-grid full">
+      <div class="field">
+        <label>이 기록을 어디서 확인했는지 적어두세요</label>
+        <textarea id="f-source-note" placeholder="예: 2026 Q2 IR 자료, 네이버증권 재무, Earnings Call Transcript, 디일렉 기사 등"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 검색어 예시 박스 -->
+  <div class="section-card">
+    <div class="section-title">🔍 검색어 예시</div>
+    <div class="search-examples">
+      <div class="search-examples-col">
+        <h4>국내주 검색어</h4>
+        <ul>
+          <li>[기업명] 영업이익률</li>
+          <li>[기업명] 수주잔고</li>
+          <li>[기업명] 리드타임</li>
+          <li>[기업명] 판가 인상</li>
+          <li>[기업명] 장기공급계약</li>
+          <li>[섹터명] 공급 부족</li>
+        </ul>
+      </div>
+      <div class="search-examples-col">
+        <h4>미국주 검색어</h4>
+        <ul>
+          <li>[Ticker] operating margin</li>
+          <li>[Ticker] backlog</li>
+          <li>[Ticker] lead time</li>
+          <li>[Ticker] pricing power</li>
+          <li>[Ticker] long-term agreement</li>
+          <li>[Industry] supply shortage</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <button class="submit-btn" onclick="runJudge()">판정하기 →</button>
+
+  <div id="result-area"></div>
+</div>
+
+<!-- ═══════════════ TAB ② 기록 ═══════════════ -->
+<div id="tab-records" class="tab-panel">
+  <div class="backup-notice">
+    <span class="icon">⚠️</span>
+    <div>
+      <strong>이 기록은 지금 사용 중인 브라우저에만 저장됩니다.</strong><br>
+      다른 기기·다른 브라우저에서는 보이지 않고, 브라우저 데이터를 지우면 함께 사라집니다.
+      입력을 마칠 때마다 <strong>JSON 내보내기</strong>로 정기적으로 백업해 두세요.
+    </div>
+  </div>
+  <div class="records-toolbar">
+    <input type="text" id="search-input" placeholder="종목명 검색…" oninput="renderRecords()">
+    <select id="filter-verdict" onchange="renderRecords()">
+      <option value="">전체 판정</option>
+      <option value="강한 구조적 병목">강한 구조적 병목</option>
+      <option value="진입 검토">진입 검토</option>
+      <option value="후보 등록">후보 등록</option>
+      <option value="관찰">관찰</option>
+      <option value="투자 보류">투자 보류</option>
+      <option value="경고 / 진입 금지">경고 / 진입 금지</option>
+      <option value="테마주 제한">테마주 제한</option>
+      <option value="판정 불가">판정 불가</option>
+    </select>
+    <div class="io-btns">
+      <button class="io-btn" onclick="exportJSON()">JSON 내보내기</button>
+      <label class="io-btn" style="cursor:pointer">
+        JSON 불러오기
+        <input type="file" accept=".json" onchange="importJSON(event)" style="display:none">
+      </label>
+    </div>
+  </div>
+  <div id="records-list"></div>
+</div>
+
+<!-- ═══════════════ TAB ③ 사용 방법 ═══════════════ -->
+<div id="tab-help" class="tab-panel">
+
+  <div class="help-section">
+    <h3>이 판정기는 무엇을 하는 도구인가</h3>
+    <p>초보 투자자가 뉴스, 감정, 주가 상승률에 휘둘리지 않고 <strong style="color:var(--text)">숫자와 배수</strong>로 산업 병목 여부를 판정하는 도구입니다.</p>
+    <p>리드타임 배수, OPM(영업이익률) 변화, 매출 증가율 등 객관적 수치를 입력하면 자동으로 판정 등급을 계산합니다. <strong style="color:var(--c-red)">매수·매도 지시 도구가 아닙니다.</strong></p>
+  </div>
+
+  <div class="help-section">
+    <h3>판정 등급 해석</h3>
+    <table class="help-table">
+      <tr><th>등급</th><th>점수</th><th>의미</th></tr>
+      <tr><td>강한 구조적 병목</td><td>12점 이상</td><td>리드타임·OPM·매출·수주잔고 동시 개선. 구조적 병목 가능성 높음.</td></tr>
+      <tr><td>진입 검토</td><td>9~11점</td><td>병목 신호와 실적 전환 일부 확인. 추가 기록으로 지속성 확인 필요.</td></tr>
+      <tr><td>후보 등록</td><td>6~8점</td><td>병목 가능성 있으나 데이터 부족. 계속 추적할 종목.</td></tr>
+      <tr><td>관찰</td><td>3~5점</td><td>병목 신호 약함. 데이터 누적 우선.</td></tr>
+      <tr><td>투자 보류</td><td>2점 이하</td><td>수요·실적·가격 결정권 신호 부족.</td></tr>
+      <tr><td>경고 / 진입 금지</td><td>—</td><td>OPM 하락 확인. 실적 전환 전까지 진입 금지.</td></tr>
+      <tr><td>테마주 제한</td><td>—</td><td>중국 추격 가능성 높음. 구조적 병목 지속성 인정 어려움.</td></tr>
+    </table>
+  </div>
+
+  <div class="help-section">
+    <h3>하드필터 우선순위</h3>
+    <p>점수와 관계없이 아래 순서로 먼저 검사합니다.</p>
+    <ul>
+      <li><strong style="color:var(--text)">1순위 데이터 부족</strong>: 필수값 미입력 → 판정 불가</li>
+      <li><strong style="color:var(--text)">2순위 OPM 하락</strong>: 현재 OPM &lt; 전년 OPM → 경고 / 진입 금지</li>
+      <li><strong style="color:var(--text)">3순위 중국 추격 높음</strong>: 테마주 제한 (점수 무관)</li>
+      <li><strong style="color:var(--text)">4순위</strong>: 위 세 가지 통과 후에만 점수로 판정</li>
+    </ul>
+  </div>
+
+  <div class="help-section">
+    <h3>점수표</h3>
+    <table class="help-table">
+      <tr><th>항목</th><th>조건</th><th>점수</th></tr>
+      <tr><td>리드타임 배수</td><td>2.0배 이상</td><td>+3</td></tr>
+      <tr><td>리드타임 배수</td><td>1.5배 이상</td><td>+2</td></tr>
+      <tr><td>리드타임 배수</td><td>1.1배 이상</td><td>+1</td></tr>
+      <tr><td>OPM</td><td>현재 &gt; 전년</td><td>+4</td></tr>
+      <tr><td>매출 증가율</td><td>20% 이상</td><td>+2</td></tr>
+      <tr><td>수주잔고 증가율</td><td>20% 이상</td><td>+2</td></tr>
+      <tr><td>가격 인상</td><td>있음</td><td>+2</td></tr>
+      <tr><td>LTA</td><td>있음</td><td>+1</td></tr>
+      <tr><td>중국 추격 가능성</td><td>낮음</td><td>+2</td></tr>
+      <tr><td>언론 과열</td><td>있음</td><td>-3</td></tr>
+    </table>
+  </div>
+
+  <div class="help-section">
+    <h3>신뢰도</h3>
+    <p>가격 인상·LTA·중국 추격·언론 과열 4개 항목에서 <strong style="color:var(--text)">모름</strong> 개수로 결정됩니다.</p>
+    <ul>
+      <li>모름 0개 → 신뢰도 양호</li>
+      <li>모름 1개 → 일부 데이터 미확인</li>
+      <li>모름 2개 이상 → 신뢰도 낮음</li>
+    </ul>
+  </div>
+
+  <div class="help-section">
+    <h3>데이터는 어디서 찾나요?</h3>
+    <p>각 입력 항목을 어디서 확인하는지 한눈에 정리했습니다. 입력 화면의 각 항목 옆 <span class="help-toggle" style="display:inline-flex">?</span> 버튼을 누르면 검색어 예시까지 바로 볼 수 있습니다.</p>
+    <table class="help-table data-guide-table">
+      <tr><th>입력 항목</th><th>쉬운 설명</th><th>초보자 추천 확인처</th><th>모르면?</th></tr>
+      <tr>
+        <td>리드타임</td>
+        <td>주문 후 납품까지 걸리는 시간</td>
+        <td>증권사 리포트, 기업 IR, 산업 기사, Earnings Call</td>
+        <td>확인 전까지 입력하지 않음</td>
+      </tr>
+      <tr>
+        <td>OPM</td>
+        <td>영업이익률</td>
+        <td>네이버증권, DART, StockAnalysis, Macrotrends, Seeking Alpha</td>
+        <td>판정 불가. 반드시 확인</td>
+      </tr>
+      <tr>
+        <td>매출 증가율</td>
+        <td>전년 대비 매출 성장률</td>
+        <td>네이버증권, DART, 기업 실적자료, StockAnalysis</td>
+        <td>판정 불가. 반드시 확인</td>
+      </tr>
+      <tr>
+        <td>수주잔고 증가율</td>
+        <td>아직 납품되지 않은 주문의 증가율</td>
+        <td>DART 수주상황, IR 자료, 10-K/10-Q, backlog 검색</td>
+        <td>공란 허용 (감점 없음)</td>
+      </tr>
+      <tr>
+        <td>가격 인상</td>
+        <td>제품 가격을 올렸는지 여부</td>
+        <td>IR, 컨퍼런스콜, 증권사 리포트, ASP 검색</td>
+        <td>모름 선택</td>
+      </tr>
+      <tr>
+        <td>LTA</td>
+        <td>장기공급계약</td>
+        <td>공시, IR, long-term agreement 검색</td>
+        <td>모름 선택</td>
+      </tr>
+      <tr>
+        <td>중국 추격 가능성</td>
+        <td>중국 업체가 빠르게 대체할 수 있는지</td>
+        <td>산업 리포트, 경쟁사 뉴스, China competition 검색</td>
+        <td>모름 선택</td>
+      </tr>
+      <tr>
+        <td>언론 과열</td>
+        <td>대중 뉴스·유튜브에서 과도하게 소비되는지</td>
+        <td>네이버뉴스, 구글뉴스, 유튜브, 커뮤니티</td>
+        <td>없음 선택 후 나중에 수정 가능</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="help-section">
+    <h3>절대 하면 안 되는 사용법</h3>
+    <ul>
+      <li>주가 상승률로 OPM을 추정하여 입력하기</li>
+      <li>리드타임을 느낌으로 입력하기 (출처 없는 추정 금지)</li>
+      <li>같은 종목을 VRT / Vertiv / 버티브로 혼용 입력하기 (직전 점수 비교 불가)</li>
+      <li>같은 종목의 섹터명을 다르게 입력하기 (예: 전력망 → 전력장비로 변경)</li>
+      <li>오래된 데이터를 최신 데이터처럼 입력하기</li>
+    </ul>
+  </div>
+
+  <div class="help-section">
+    <h3>초보자용 5분 루틴</h3>
+    <ul>
+      <li>① 분기 실적 발표 후 DART 또는 SEC EDGAR에서 OPM·매출 확인</li>
+      <li>② 컨퍼런스콜 텍스트에서 "lead time" 키워드 검색 후 리드타임 확인</li>
+      <li>③ 가격 인상·LTA·중국 추격 여부 업데이트</li>
+      <li>④ 이 판정기에 숫자 입력 → 판정 확인</li>
+      <li>⑤ 직전 점수 대비 변화 원인 확인 → 보유·관찰·출구 결정</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  이 도구는 투자 판단 보조 도구입니다. 매수·매도 지시가 아닙니다. &nbsp;|&nbsp; 뀨의 병목 투자 판정기 v2.0
+</footer>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════
+   STORAGE
+═══════════════════════════════════════ */
+const STORAGE_KEY = 'bottleneck_records';
+
+function loadRecords() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch(e) { return []; }
+}
+function saveRecords(records) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+/* ═══════════════════════════════════════
+   CORE LOGIC
+═══════════════════════════════════════ */
+function calcScore(d) {
+  // STEP02 Q열 수식과 동일: 필수값 누락 또는 OPM 하락 시 점수는 공란(null) 처리한다.
+  // (중국 추격 "높음"은 점수 자체는 정상 계산되고, R열에서만 하드필터가 작동한다 — STEP03 케이스 8 참고)
+  if (!d.normalLT || !d.currLT || !d.ltRef ||
+      d.prevOPM === null || d.currOPM === null || d.rev === null) {
+    return null;
+  }
+  if (d.currOPM < d.prevOPM) return null;
+
+  const ratio = d.currLT / d.normalLT;
+  let s = 0;
+
+  if      (ratio >= 2.0) s += 3;
+  else if (ratio >= 1.5) s += 2;
+  else if (ratio >= 1.1) s += 1;
+
+  if (d.currOPM > d.prevOPM) s += 4;
+  if (d.rev >= 20) s += 2;
+  if (d.backlog !== null && d.backlog >= 20) s += 2;
+  if (d.price === '있음') s += 2;
+  if (d.lta   === '있음') s += 1;
+  if (d.china === '낮음') s += 2;
+  if (d.media === '있음') s -= 3;
+
+  return s;
+}
+
+function getVerdict(d, score) {
+  if (!d.normalLT || !d.currLT || !d.ltRef ||
+      d.prevOPM === null || d.currOPM === null || d.rev === null) {
+    return '판정 불가';
+  }
+  if (d.currOPM < d.prevOPM) return '경고 / 진입 금지';
+  if (d.china === '높음')    return '테마주 제한';
+
+  if (score >= 12) return '강한 구조적 병목';
+  if (score >= 9)  return '진입 검토';
+  if (score >= 6)  return '후보 등록';
+  if (score >= 3)  return '관찰';
+  return '투자 보류';
+}
+
+function getReliability(d) {
+  const unknowns = [d.price, d.lta, d.china, d.media].filter(v => v === '모름').length;
+  if (unknowns >= 2) return '신뢰도 낮음';
+  if (unknowns === 1) return '일부 데이터 미확인';
+  return '신뢰도 양호';
+}
+
+function getInterpretation(verdict, d) {
+  const mediaWarn = d.media === '있음'
+    ? ' 언론 과열 신호가 있으므로 신규 추격매수는 금지입니다. 보유자는 리드타임과 OPM 둔화 여부를 확인하며 비중 조절을 검토하세요.'
+    : '';
+
+  const map = {
+    '판정 불가': '필수 데이터를 입력해야 판정이 가능합니다.',
+    '경고 / 진입 금지': '병목 서사가 있더라도 영업이익률이 하락했습니다. 실적 전환이 확인되지 않았으므로 진입 금지입니다.',
+    '테마주 제한': '중국 또는 신규 경쟁자의 추격 가능성이 높아 구조적 병목 지속성을 인정하기 어렵습니다. 장기 투자보다 단기 테마성 접근으로 제한해야 합니다.' + mediaWarn,
+    '강한 구조적 병목': '리드타임, OPM, 매출, 수주잔고가 동시에 개선되고 있습니다. 구조적 병목 가능성이 높습니다. 신규 진입은 분할 접근, 보유자는 유지 관점이 적합합니다.' + mediaWarn,
+    '진입 검토': '병목 신호와 실적 전환이 일부 확인됩니다. 다만 단일 시점 판단보다 다음 기록에서도 리드타임과 OPM 개선이 지속되는지 확인해야 합니다.' + mediaWarn,
+    '후보 등록': '병목 가능성은 있으나 아직 강한 구조적 병목으로 보기에는 데이터가 부족합니다. 리드타임, 가격 인상, 수주잔고 변화를 계속 추적하세요.',
+    '관찰': '현재는 병목 신호가 약합니다. 투자 판단보다 데이터 누적이 우선입니다.',
+    '투자 보류': '수요, 실적, 가격 결정권 신호가 충분하지 않습니다. 추격 매수보다 관찰이 적합합니다.',
+  };
+  return map[verdict] || '';
+}
+
+function verdictClass(v) {
+  const map = {
+    '강한 구조적 병목': 'vc-strong',
+    '진입 검토':        'vc-enter',
+    '후보 등록':        'vc-candidate',
+    '관찰':            'vc-watch',
+    '투자 보류':        'vc-hold',
+    '경고 / 진입 금지': 'vc-danger',
+    '테마주 제한':      'vc-theme',
+    '판정 불가':        'vc-unknown',
+  };
+  return map[v] || 'vc-unknown';
+}
+
+function verdictColor(v) {
+  const map = {
+    '강한 구조적 병목': '#16a34a',
+    '진입 검토':        '#65a30d',
+    '후보 등록':        '#2563eb',
+    '관찰':            '#6b7280',
+    '투자 보류':        '#4b5563',
+    '경고 / 진입 금지': '#dc2626',
+    '테마주 제한':      '#ea580c',
+    '판정 불가':        '#9ca3af',
+  };
+  return map[v] || '#9ca3af';
+}
+
+function getPrevRecord(records, ticker, date) {
+  const sorted = records
+    .filter(r => r.ticker === ticker && r.date < date)
+    .sort((a, b) => a.date < b.date ? -1 : 1);
+  return sorted.length ? sorted[sorted.length - 1] : null;
+}
+
+function getChangeCause(curr, prev) {
+  if (!prev) return '';
+  const causes = [];
+  if (curr.ltRatio < prev.ltRatio)  causes.push('리드타임 약화');
+  if (curr.opmChange < prev.opmChange) causes.push('OPM 둔화');
+  if (curr.backlog !== null && prev.backlog !== null && curr.backlog < prev.backlog)
+    causes.push('수주잔고 둔화');
+  if (curr.media === '있음') causes.push('언론 과열');
+  return causes.join(', ');
+}
+
+/* ═══════════════════════════════════════
+   TABS
+═══════════════════════════════════════ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'records') renderRecords();
+}
+
+/* ═══════════════════════════════════════
+   FIELD HELP TOGGLE
+═══════════════════════════════════════ */
+function toggleHelp(btn) {
+  const field = btn.closest('.field');
+  const details = field.querySelector('details.field-help');
+  if (!details) return;
+  details.open = !details.open;
+  btn.style.background = details.open ? 'var(--accent)' : '';
+  btn.style.color = details.open ? '#fff' : '';
+  btn.style.borderColor = details.open ? 'var(--accent)' : '';
+}
+
+/* ═══════════════════════════════════════
+   FORM HELPERS
+═══════════════════════════════════════ */
+function numOrNull(id) {
+  const v = document.getElementById(id).value;
+  return v === '' ? null : parseFloat(v);
+}
+function strVal(id) { return document.getElementById(id).value.trim(); }
+
+function setErr(id) { document.getElementById(id).classList.add('error'); }
+function clearErr(id) { document.getElementById(id).classList.remove('error'); }
+function clearAllErr() {
+  document.querySelectorAll('input.error, select.error').forEach(el => el.classList.remove('error'));
+}
+
+/* ═══════════════════════════════════════
+   JUDGE
+═══════════════════════════════════════ */
+function runJudge() {
+  clearAllErr();
+
+  const date     = strVal('f-date');
+  const sector   = strVal('f-sector');
+  const ticker   = strVal('f-ticker');
+  const normalLT = numOrNull('f-normal-lt');
+  const ltRef    = strVal('f-lt-ref');
+  const currLT   = numOrNull('f-curr-lt');
+  const prevOPM  = numOrNull('f-prev-opm');
+  const currOPM  = numOrNull('f-curr-opm');
+  const rev      = numOrNull('f-rev');
+  const backlog  = numOrNull('f-backlog');
+  const price    = strVal('f-price');
+  const lta      = strVal('f-lta');
+  const china    = strVal('f-china');
+  const media    = strVal('f-media');
+  const sourceNote = strVal('f-source-note');
+
+  // Validation
+  let valid = true;
+  const required = [
+    ['f-date', date], ['f-sector', sector], ['f-ticker', ticker],
+    ['f-lt-ref', ltRef],
+  ];
+  required.forEach(([id, v]) => { if (!v) { setErr(id); valid = false; } });
+
+  const numRequired = [
+    ['f-normal-lt', normalLT], ['f-curr-lt', currLT],
+    ['f-prev-opm', prevOPM], ['f-curr-opm', currOPM], ['f-rev', rev],
+  ];
+  numRequired.forEach(([id, v]) => {
+    if (v === null || isNaN(v)) { setErr(id); valid = false; }
+  });
+
+  if (normalLT !== null && normalLT <= 0) { setErr('f-normal-lt'); valid = false; }
+  if (currLT   !== null && currLT   <= 0) { setErr('f-curr-lt');   valid = false; }
+
+  if (!valid) {
+    showToast('필수 항목을 모두 입력해 주세요.');
+    return;
+  }
+
+  const d = { date, sector, ticker, normalLT, ltRef, currLT, prevOPM, currOPM, rev, backlog, price, lta, china, media };
+  d.ltRatio   = currLT / normalLT;
+  d.opmChange = currOPM - prevOPM;
+
+  const score   = calcScore(d);
+  const verdict = getVerdict(d, score);
+  const rel     = getReliability(d);
+  const interp  = getInterpretation(verdict, d);
+
+  const records = loadRecords();
+  const prev    = getPrevRecord(records, ticker, date);
+  const prevScore = prev ? prev.score : null;
+  const delta   = (prevScore !== null && typeof score === 'number') ? score - prevScore : null;
+  const cause   = getChangeCause(d, prev);
+
+  const record = {
+    id: genId(), date, sector, ticker,
+    normalLT, ltRef, currLT, prevOPM, currOPM, rev, backlog,
+    price, lta, china, media, sourceNote,
+    ltRatio: d.ltRatio, opmChange: d.opmChange,
+    score, verdict, reliability: rel,
+    prevScore, scoreDelta: delta, changeCause: cause,
+  };
+  records.push(record);
+  // Sort by date asc, then by insertion order
+  records.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  saveRecords(records);
+
+  renderResultCard(record, interp);
+  showToast('판정 완료 — 기록 목록에 저장되었습니다. (이 브라우저 안에만 저장되니 가끔 JSON으로 내보내 두세요)');
+}
+
+/* ═══════════════════════════════════════
+   RESULT CARD
+═══════════════════════════════════════ */
+function renderResultCard(r, interp) {
+  const isHardFail = ['판정 불가','경고 / 진입 금지'].includes(r.verdict);
+  const scoreDisplay = (typeof r.score === 'number' && !isHardFail) ? r.score : '—';
+  const gaugePct = (typeof r.score === 'number' && !isHardFail)
+    ? Math.min(100, Math.max(0, (r.score / 16) * 100)) : 0;
+
+  const relClass = r.reliability === '신뢰도 양호' ? 'rel-good'
+                 : r.reliability === '일부 데이터 미확인' ? 'rel-mid' : 'rel-low';
+
+  const relNoteMap = {
+    '신뢰도 양호': '확인되지 않은 선택 항목이 없습니다.',
+    '일부 데이터 미확인': '일부 항목이 모름으로 입력되었습니다. LTA, 가격 인상, 중국 추격 여부를 추가 확인하면 판정 정확도가 올라갑니다.',
+    '신뢰도 낮음': '확인되지 않은 항목이 많습니다. 판정은 임시 결과로 보고 데이터 보완이 필요합니다.',
+  };
+  const relNote = relNoteMap[r.reliability] || '';
+
+  const ltLabel = r.ltRatio >= 2.0 ? '강한 병목'
+                : r.ltRatio >= 1.5 ? '병목 진행'
+                : r.ltRatio >= 1.1 ? '약한 병목' : '정상';
+
+  const opmSign = r.opmChange > 0 ? '+' : '';
+  const opmCls  = r.opmChange > 0 ? 'up' : r.opmChange < 0 ? 'down' : '';
+
+  let deltaHTML = '';
+  if (r.prevScore !== null && r.scoreDelta !== null) {
+    const sign  = r.scoreDelta > 0 ? '+' : '';
+    const dCls  = r.scoreDelta >= 3 ? 'pts-pos'
+                : r.scoreDelta <= -3 ? 'pts-neg' : '';
+    const dDesc = r.scoreDelta >= 3  ? '병목 빠르게 강화'
+                : r.scoreDelta >= 0  ? '유지 또는 완만한 개선'
+                : r.scoreDelta >= -2 ? '약한 둔화' : '병목 둔화 가능성';
+    deltaHTML = `
+      <div class="delta-row">
+        <span class="delta-desc">직전 점수 ${r.prevScore}점</span>
+        <span class="arrow">→</span>
+        <span class="delta-num ${dCls}">${sign}${r.scoreDelta}</span>
+        <span class="delta-desc">${dDesc}${r.changeCause ? ' · ' + r.changeCause : ''}</span>
+      </div>`;
+  }
+
+  // breakdown — 하드필터(판정 불가 / 경고·진입금지)인 경우 점수 자체가 무의미하므로 별도 안내로 대체한다.
+  // (중국 추격 "높음"=테마주 제한은 STEP02상 점수가 정상 계산되므로 breakdown을 그대로 보여준다)
+  const showBreakdown = r.verdict !== '판정 불가' && r.verdict !== '경고 / 진입 금지';
+
+  const ltRatio = r.currLT / r.normalLT;
+  const ltPts = ltRatio >= 2.0 ? 3 : ltRatio >= 1.5 ? 2 : ltRatio >= 1.1 ? 1 : 0;
+  const opmPts = r.currOPM > r.prevOPM ? 4 : 0;
+  const revPts = r.rev >= 20 ? 2 : 0;
+  const blPts  = (r.backlog !== null && r.backlog >= 20) ? 2 : 0;
+  const prPts  = r.price === '있음' ? 2 : 0;
+  const ltaPts = r.lta   === '있음' ? 1 : 0;
+  const cnPts  = r.china === '낮음' ? 2 : 0;
+  const mdPts  = r.media === '있음' ? -3 : 0;
+
+  function ptsHtml(n) {
+    const s = (n > 0 ? '+' : '') + n + '점';
+    const c = n > 0 ? 'pts-pos' : n < 0 ? 'pts-neg' : 'pts-zero';
+    return `<span class="item-pts ${c}">${s}</span>`;
+  }
+
+  const breakdownRows = [
+    [`리드타임 배수 ${ltRatio.toFixed(2)}배 (${ltLabel})`, ltPts],
+    [`OPM ${r.opmChange >= 0 ? '상승' : '하락'} (${opmSign}${r.opmChange.toFixed(1)}%p)`, opmPts],
+    [`매출 증가율 ${r.rev}%`, revPts],
+    [`수주잔고 증가율 ${r.backlog !== null ? r.backlog + '%' : '미입력'}`, blPts],
+    [`가격 인상 ${r.price}`, prPts],
+    [`LTA ${r.lta}`, ltaPts],
+    [`중국 추격 ${r.china}`, cnPts],
+    [`언론 과열 ${r.media}`, mdPts],
+  ].map(([name, pts]) => `
+    <div class="breakdown-row">
+      <span class="item-name">${name}</span>
+      ${ptsHtml(pts)}
+    </div>`).join('');
+
+  const vClass = verdictClass(r.verdict);
+
+  const html = `
+  <div class="result-card">
+    <div class="result-header ${vClass}">
+      <div>
+        <div class="result-verdict">${r.verdict}</div>
+        <div class="result-ticker">${r.ticker} &nbsp;·&nbsp; ${r.sector} &nbsp;·&nbsp; ${r.date}</div>
+      </div>
+      <div class="result-score-badge">
+        <div class="score-num">${scoreDisplay}</div>
+        <div class="score-label">점수</div>
+      </div>
+    </div>
+    <div class="gauge-bar-wrap ${vClass}">
+      <div class="gauge-track">
+        <div class="gauge-fill" style="width:${gaugePct}%"></div>
+      </div>
+      <div class="gauge-labels"><span>0</span><span>6</span><span>9</span><span>12</span><span>16</span></div>
+    </div>
+    <div class="result-body">
+      <div class="result-stats">
+        <div class="stat-box">
+          <div class="stat-label">리드타임 배수</div>
+          <div class="stat-value">${ltRatio.toFixed(2)}배 <small style="font-size:12px;font-weight:400;color:var(--text-muted)">${ltLabel}</small></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">OPM 변화</div>
+          <div class="stat-value ${opmCls}">${opmSign}${r.opmChange.toFixed(1)}%p</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">신뢰도</div>
+          <div class="stat-value" style="font-size:13px">
+            <span class="reliability-badge ${relClass}">${r.reliability}</span>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">직전 점수</div>
+          <div class="stat-value">${r.prevScore !== null ? r.prevScore + '점' : '—'}</div>
+        </div>
+      </div>
+      ${deltaHTML}
+      <div class="interpretation">${interp}</div>
+      <div class="reliability-note">${relNote}</div>
+      ${r.sourceNote ? `<div class="source-note-display"><strong>데이터 출처:</strong> ${r.sourceNote}</div>` : ''}
+      ${showBreakdown ? `
+      <button class="breakdown-toggle" onclick="toggleBreakdown(this)">항목별 점수 내역 ▼</button>
+      <div class="breakdown-body">
+        ${breakdownRows}
+        <div class="breakdown-row" style="font-weight:700">
+          <span class="item-name" style="color:var(--text)">합계</span>
+          ${ptsHtml(typeof r.score === 'number' ? r.score : 0)}
+        </div>
+      </div>` : `
+      <div class="breakdown-note">하드필터가 적용되어 점수 계산은 표시하지 않습니다. ${r.verdict === '경고 / 진입 금지' ? 'OPM이 하락한 경우 점수 자체가 의미가 없습니다 (STEP02 Q열 공란 처리와 동일).' : '필수 항목이 모두 입력되어야 점수를 계산할 수 있습니다.'}</div>`}
+    </div>
+  </div>`;
+
+  document.getElementById('result-area').innerHTML = html;
+  document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function toggleBreakdown(btn) {
+  const body = btn.nextElementSibling;
+  const open = body.classList.toggle('open');
+  btn.textContent = '항목별 점수 내역 ' + (open ? '▲' : '▼');
+}
+
+/* ═══════════════════════════════════════
+   RECORDS
+═══════════════════════════════════════ */
+function renderRecords() {
+  const search  = document.getElementById('search-input').value.trim().toLowerCase();
+  const fVerdict = document.getElementById('filter-verdict').value;
+  let records = loadRecords().slice().reverse(); // newest first
+
+  if (search)   records = records.filter(r => r.ticker.toLowerCase().includes(search) || r.sector.toLowerCase().includes(search));
+  if (fVerdict) records = records.filter(r => r.verdict === fVerdict);
+
+  const list = document.getElementById('records-list');
+  if (!records.length) {
+    list.innerHTML = `<div class="empty-state"><div class="big">📋</div><p>기록이 없습니다. 판정을 입력하면 여기에 쌓입니다.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = records.map(r => {
+    const isHardFail = ['판정 불가','경고 / 진입 금지'].includes(r.verdict);
+    const scoreDisplay = (!isHardFail && typeof r.score === 'number') ? r.score + '점' : '—';
+    const deltaDisplay = r.scoreDelta !== null ? ((r.scoreDelta > 0 ? '+' : '') + r.scoreDelta) : '—';
+    const deltaCls = r.scoreDelta > 0 ? 'pts-pos' : r.scoreDelta < 0 ? 'pts-neg' : 'pts-zero';
+    const col = verdictColor(r.verdict);
+
+    const detailLines = [
+      `리드타임: 평소 ${r.normalLT}주 (${r.ltRef}) → 현재 ${r.currLT}주 (${r.ltRatio.toFixed(2)}배)`,
+      `OPM: ${r.prevOPM}% → ${r.currOPM}% (${r.opmChange >= 0 ? '+' : ''}${r.opmChange.toFixed(1)}%p)`,
+      `매출 증가율: ${r.rev}%` + (r.backlog !== null ? ` / 수주잔고: ${r.backlog}%` : ''),
+      `가격인상: ${r.price} / LTA: ${r.lta} / 중국추격: ${r.china} / 언론과열: ${r.media}`,
+      r.changeCause ? `변화 원인: ${r.changeCause}` : '',
+      `신뢰도: ${r.reliability}`,
+      r.sourceNote ? `데이터 출처: ${r.sourceNote}` : '',
+    ].filter(Boolean).join('<br>');
+
+    return `
+    <div class="record-item">
+      <div class="record-row">
+        <span class="record-verdict-dot" style="background:${col}"></span>
+        <span class="record-ticker">${r.ticker}</span>
+        <span class="record-sector">${r.sector}</span>
+        <span class="record-verdict-text" style="background:${col}">${r.verdict}</span>
+        <span class="record-score">${scoreDisplay}</span>
+        <span class="record-delta ${deltaCls}">${deltaDisplay !== '—' ? deltaDisplay + '점' : '—'}</span>
+        <span class="record-date">${r.date}</span>
+        <button class="record-expand-btn" onclick="toggleDetail(this)">⋯</button>
+      </div>
+      <div class="record-detail">
+        ${detailLines}
+        <br><br>
+        <button onclick="deleteRecord('${r.id}')" style="background:none;border:1px solid #444;color:#888;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit">이 기록 삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleDetail(btn) {
+  const detail = btn.closest('.record-item').querySelector('.record-detail');
+  detail.classList.toggle('open');
+  btn.textContent = detail.classList.contains('open') ? '✕' : '⋯';
+}
+
+function deleteRecord(id) {
+  if (!confirm('이 기록을 삭제할까요?')) return;
+  let records = loadRecords().filter(r => r.id !== id);
+  saveRecords(records);
+  renderRecords();
+  showToast('기록이 삭제되었습니다.');
+}
+
+/* ═══════════════════════════════════════
+   JSON IO
+═══════════════════════════════════════ */
+function exportJSON() {
+  const records = loadRecords();
+  if (!records.length) { showToast('내보낼 기록이 없습니다.'); return; }
+  const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'bottleneck_records_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON 파일로 내보냈습니다.');
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error();
+      const existing = loadRecords();
+      const existingIds = new Set(existing.map(r => r.id));
+      const merged = [...existing, ...imported.filter(r => !existingIds.has(r.id))];
+      merged.sort((a, b) => a.date < b.date ? -1 : 1);
+      saveRecords(merged);
+      renderRecords();
+      showToast(`${imported.length}개 기록을 불러왔습니다.`);
+    } catch {
+      showToast('올바른 JSON 파일이 아닙니다.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+/* ═══════════════════════════════════════
+   TOAST
+═══════════════════════════════════════ */
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Set today's date as default
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('f-date').value = today;
+});
+</script>
+</body>
+</html>
