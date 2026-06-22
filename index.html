@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>뀨의 병목 투자 판정기 v2.0</title>
+<title>뀨의 병목 투자 판정기 v2.1 — Finviz 자동입력</title>
 <style>
   :root {
     --bg: #0f1117;
@@ -125,6 +125,146 @@
   /* ── LAYOUT ── */
   .tab-panel { display: none; padding: 24px; max-width: 800px; margin: 0 auto; }
   .tab-panel.active { display: block; }
+
+  /* ── FINVIZ 복붙 박스 ── */
+  .finviz-paste-box {
+    background: var(--surface2);
+    border: 1.5px dashed var(--accent);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 20px;
+  }
+  .finviz-paste-box .fvz-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .finviz-paste-box .fvz-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    line-height: 1.6;
+  }
+  .finviz-paste-box textarea {
+    width: 100%;
+    height: 90px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 12px;
+    padding: 10px 12px;
+    resize: vertical;
+    font-family: monospace;
+    line-height: 1.5;
+  }
+  .finviz-paste-box textarea:focus { outline: none; border-color: var(--accent); }
+  .finviz-paste-box textarea::placeholder { color: var(--text-dim); }
+  .fvz-btn-row { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+  .fvz-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .fvz-btn:hover { opacity: 0.85; }
+  .fvz-btn-clear {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .fvz-btn-clear:hover { color: var(--text); }
+  .fvz-status {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+  .fvz-status.ok { color: var(--c-green); }
+  .fvz-status.err { color: var(--c-red); }
+
+  /* ── FINVIZ 예비 신호 카드 ── */
+  .finviz-signal-card {
+    display: none;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .finviz-signal-card.visible { display: block; }
+  .fsc-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+  .fsc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 560px) { .fsc-grid { grid-template-columns: 1fr; } }
+  .fsc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12.5px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+  }
+  .fsc-label { color: var(--text-muted); }
+  .fsc-val { font-weight: 700; color: var(--text); }
+  .fsc-val.strong { color: var(--c-green); }
+  .fsc-val.warn { color: var(--c-yellow); }
+  .fsc-val.danger { color: var(--c-red); }
+  .fsc-verdict {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--text-muted);
+  }
+  .fsc-verdict strong { color: var(--text); }
+  .fsc-missing {
+    margin-top: 10px;
+    background: rgba(234,88,12,0.08);
+    border: 1px solid rgba(234,88,12,0.3);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--c-orange);
+    line-height: 1.7;
+  }
+  .fsc-missing strong { color: var(--c-orange); display: block; margin-bottom: 4px; }
+  .fsc-filled-badge {
+    display: inline-block;
+    background: rgba(79,122,255,0.15);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 20px;
+    font-size: 11px;
+    padding: 2px 8px;
+    margin-left: 6px;
+    font-weight: 600;
+  }
 
   /* ── SECTION CARD ── */
   .section-card {
@@ -769,7 +909,7 @@
     <div class="logo">뀨의 <span>병목 투자 판정기</span></div>
   </div>
   <a href="manual.html" target="_blank" class="manual-link">📖 사용 설명서</a>
-  <span class="version">v2.0</span>
+  <span class="version">v2.1</span>
 </header>
 
 <div class="tab-bar">
@@ -781,6 +921,36 @@
 
 <!-- ═══════════════ TAB ① 입력 ═══════════════ -->
 <div id="tab-input" class="tab-panel active">
+
+  <!-- ══ FINVIZ 복붙 자동입력 박스 ══ -->
+  <div class="finviz-paste-box">
+    <div class="fvz-title">⚡ Finviz 텍스트 자동입력 <span style="font-size:11px;font-weight:400;color:var(--text-muted)">미국주 전용</span></div>
+    <div class="fvz-desc">
+      Finviz 종목 페이지에서 <strong style="color:var(--text)">전체 텍스트를 복사(Ctrl+A → Ctrl+C)</strong>한 뒤 아래에 붙여넣고 [자동입력] 버튼을 누르세요.<br>
+      채울 수 있는 항목만 자동입력되고, 나머지(리드타임·전년OPM·수주잔고 등)는 직접 입력하셔야 합니다.
+    </div>
+    <textarea id="fvz-paste" placeholder="Finviz 페이지 전체 텍스트를 여기에 붙여넣으세요..."></textarea>
+    <div class="fvz-btn-row">
+      <button class="fvz-btn" onclick="parseFinviz()">⚡ 자동입력</button>
+      <button class="fvz-btn-clear" onclick="clearFinviz()">초기화</button>
+      <span class="fvz-status" id="fvz-status"></span>
+    </div>
+  </div>
+
+  <!-- ══ FINVIZ 예비 신호 카드 ══ -->
+  <div class="finviz-signal-card" id="fvz-signal-card">
+    <div class="fsc-title">📊 Finviz 기반 예비 신호 <span style="font-weight:400;font-size:11px;text-transform:none;">— 병목 확정 아님, 후보 선별용</span></div>
+    <div class="fsc-grid" id="fvz-signal-grid"></div>
+    <div class="fsc-verdict" id="fvz-verdict"></div>
+    <div class="fsc-missing">
+      <strong>⚠️ Finviz에 없어서 직접 확인이 필요한 항목</strong>
+      · 전년 OPM → 네이버증권 / Macrotrends에서 전년 동기 확인<br>
+      · 리드타임 (평소 / 현재) → 증권사 리포트, Earnings Call Transcript<br>
+      · 수주잔고 증가율 → 10-Q / IR 자료<br>
+      · 가격 인상 / LTA 체결 여부 → 뉴스, SEC filing<br>
+      · 중국·경쟁사 추격 가능성 → 산업 분석
+    </div>
+  </div>
 
   <div class="onboarding-box">
     <h4>📋 초보자 입력 순서</h4>
@@ -1389,6 +1559,199 @@
 
 <script>
 'use strict';
+
+/* ═══════════════════════════════════════
+   FINVIZ 자동입력 파서
+═══════════════════════════════════════ */
+
+function extractFinviz(text) {
+  // 숫자+% 또는 숫자만 추출하는 헬퍼
+  function grab(pattern) {
+    const m = text.match(pattern);
+    return m ? m[1] : null;
+  }
+  function pct(val) {
+    // "34.03%" → 34.03
+    if (!val) return null;
+    return parseFloat(val.replace('%',''));
+  }
+
+  return {
+    ticker:      grab(/Ticker\s+([A-Z]{1,6})/) || grab(/^([A-Z]{1,6})\s/m),
+    salesYY:     pct(grab(/Sales Y\/Y TTM\s+([\d\.\-]+%)/)),
+    salesQQ:     pct(grab(/Sales Q\/Q\s+([\d\.\-]+%)/)),
+    epsYY:       pct(grab(/EPS Y\/Y TTM\s+([\d\.\-]+%)/)),
+    epsQQ:       pct(grab(/EPS Q\/Q\s+([\d\.\-]+%)/)),
+    operMargin:  pct(grab(/Oper\.\s*Margin\s+([\d\.\-]+%)/)),
+    grossMargin: pct(grab(/Gross Margin\s+([\d\.\-]+%)/)),
+    profitMargin:pct(grab(/Profit Margin\s+([\d\.\-]+%)/)),
+    roic:        pct(grab(/ROIC\s+([\d\.\-]+%)/)),
+    roa:         pct(grab(/ROA\s+([\d\.\-]+%)/)),
+    roe:         pct(grab(/ROE\s+([\d\.\-]+%)/)),
+    debtEq:      parseFloat(grab(/Debt\/Eq\s+([\d\.\-]+)/) || 'NaN'),
+    currentRatio:parseFloat(grab(/Current Ratio\s+([\d\.]+)/) || 'NaN'),
+    quickRatio:  parseFloat(grab(/Quick Ratio\s+([\d\.]+)/) || 'NaN'),
+    ps:          parseFloat(grab(/P\/S\s+([\d\.]+)/) || 'NaN'),
+    pfcf:        parseFloat(grab(/P\/FCF\s+([\d\.]+)/) || 'NaN'),
+    evEbitda:    parseFloat(grab(/EV\/EBITDA\s+([\d\.]+)/) || 'NaN'),
+    perfMonth:   pct(grab(/Perf Month\s+([\d\.\-]+%)/)),
+    rsi:         parseFloat(grab(/RSI\s*\(\s*14\s*\)\s+([\d\.]+)/) || 'NaN'),
+  };
+}
+
+function signalLabel(value, thresholds, labels) {
+  // thresholds: [낮음기준, 높음기준], labels: [낮음, 보통, 높음]
+  if (value === null || isNaN(value)) return { text: '데이터 없음', cls: '' };
+  if (value >= thresholds[1]) return { text: labels[2], cls: 'strong' };
+  if (value >= thresholds[0]) return { text: labels[1], cls: 'warn' };
+  return { text: labels[0], cls: 'danger' };
+}
+function overLabel(value, thresholds) {
+  // 과열: 높을수록 위험
+  if (value === null || isNaN(value)) return { text: '데이터 없음', cls: '' };
+  if (value >= thresholds[1]) return { text: '높음 ⚠️', cls: 'danger' };
+  if (value >= thresholds[0]) return { text: '보통', cls: 'warn' };
+  return { text: '낮음', cls: 'strong' };
+}
+
+function parseFinviz() {
+  const raw = document.getElementById('fvz-paste').value.trim();
+  if (!raw) {
+    setFvzStatus('텍스트를 먼저 붙여넣어 주세요.', 'err');
+    return;
+  }
+
+  const d = extractFinviz(raw);
+  let filled = 0;
+
+  // ── 자동입력 가능한 항목만 채우기 ──
+  // 종목명
+  if (d.ticker) {
+    const el = document.getElementById('f-ticker');
+    if (el && !el.value) { el.value = d.ticker; filled++; }
+  }
+  // 매출 증가율 → f-rev
+  if (d.salesYY !== null) {
+    const el = document.getElementById('f-rev');
+    if (el) { el.value = d.salesYY; markFilled(el); filled++; }
+  }
+  // 현재 OPM → f-curr-opm
+  if (d.operMargin !== null) {
+    const el = document.getElementById('f-curr-opm');
+    if (el) { el.value = d.operMargin; markFilled(el); filled++; }
+  }
+
+  // ── 예비 신호 카드 생성 ──
+  buildSignalCard(d);
+
+  setFvzStatus(`✅ ${filled}개 항목 자동입력 완료`, 'ok');
+}
+
+function markFilled(el) {
+  el.style.borderColor = 'var(--accent)';
+  el.style.background = 'rgba(79,122,255,0.07)';
+  // 배지 추가
+  const existing = el.parentNode.querySelector('.fsc-filled-badge');
+  if (!existing) {
+    const badge = document.createElement('span');
+    badge.className = 'fsc-filled-badge';
+    badge.textContent = 'Finviz 자동입력';
+    el.parentNode.appendChild(badge);
+  }
+}
+
+function buildSignalCard(d) {
+  const card = document.getElementById('fvz-signal-card');
+  const grid = document.getElementById('fvz-signal-grid');
+  const verdict = document.getElementById('fvz-verdict');
+
+  const rows = [
+    { label: '매출 성장 (Y/Y TTM)', val: d.salesYY !== null ? d.salesYY + '%' : '-',
+      sig: signalLabel(d.salesYY, [20, 50], ['약함', '보통', '강함']) },
+    { label: '매출 성장 (Q/Q)',      val: d.salesQQ !== null ? d.salesQQ + '%' : '-',
+      sig: signalLabel(d.salesQQ, [10, 30], ['약함', '보통', '강함']) },
+    { label: 'EPS 성장 (Y/Y TTM)',  val: d.epsYY !== null ? d.epsYY + '%' : '-',
+      sig: signalLabel(d.epsYY, [20, 50], ['약함', '보통', '강함']) },
+    { label: '영업이익률 (현재)',     val: d.operMargin !== null ? d.operMargin + '%' : '-',
+      sig: signalLabel(d.operMargin, [10, 20], ['약함', '보통', '강함']) },
+    { label: '매출총이익률',          val: d.grossMargin !== null ? d.grossMargin + '%' : '-',
+      sig: signalLabel(d.grossMargin, [30, 50], ['약함', '보통', '강함']) },
+    { label: 'ROIC',                val: d.roic !== null ? d.roic + '%' : '-',
+      sig: signalLabel(d.roic, [10, 20], ['보통', '양호', '우수']) },
+    { label: '재무 안정성 (Debt/Eq)',val: !isNaN(d.debtEq) ? d.debtEq.toFixed(2) : '-',
+      sig: d.debtEq <= 0.3 ? { text:'우수', cls:'strong' } : d.debtEq <= 1 ? { text:'보통', cls:'warn' } : { text:'주의', cls:'danger' } },
+    { label: 'Current Ratio',       val: !isNaN(d.currentRatio) ? d.currentRatio.toFixed(2) : '-',
+      sig: signalLabel(d.currentRatio, [1.5, 2.5], ['낮음', '보통', '우수']) },
+    { label: 'P/S (밸류 부담)',       val: !isNaN(d.ps) ? d.ps.toFixed(1) : '-',
+      sig: overLabel(d.ps, [15, 30]) },
+    { label: 'P/FCF (밸류 부담)',     val: !isNaN(d.pfcf) ? d.pfcf.toFixed(1) : '-',
+      sig: overLabel(d.pfcf, [50, 100]) },
+    { label: '월간 주가 성과',        val: d.perfMonth !== null ? d.perfMonth + '%' : '-',
+      sig: overLabel(d.perfMonth, [20, 50]) },
+    { label: 'RSI (14)',             val: !isNaN(d.rsi) ? d.rsi.toFixed(1) : '-',
+      sig: overLabel(d.rsi, [65, 75]) },
+  ];
+
+  grid.innerHTML = rows.map(r => `
+    <div class="fsc-row">
+      <span class="fsc-label">${r.label}</span>
+      <span class="fsc-val ${r.sig.cls}">${r.val} <span style="font-size:11px;opacity:.8">${r.sig.text}</span></span>
+    </div>
+  `).join('');
+
+  // 간단한 예비 판정 문구
+  const growthOk  = (d.salesYY !== null && d.salesYY >= 30) || (d.epsYY !== null && d.epsYY >= 30);
+  const marginOk  = d.operMargin !== null && d.operMargin >= 15;
+  const overHeat  = (d.perfMonth !== null && d.perfMonth >= 40) || (!isNaN(d.rsi) && d.rsi >= 70)
+                 || (!isNaN(d.ps) && d.ps >= 25) || (!isNaN(d.pfcf) && d.pfcf >= 80);
+
+  let txt = '';
+  if (growthOk && marginOk && overHeat) {
+    txt = `<strong>병목 후보 가능성: 높음 — 단, 과열 주의</strong><br>
+    성장성과 마진은 강하지만 밸류에이션·단기 과열 부담이 큽니다.<br>
+    보유자는 유지 가능, 신규 진입은 조정 시 분할 접근 권장.`;
+  } else if (growthOk && marginOk) {
+    txt = `<strong>병목 후보 가능성: 높음</strong><br>
+    성장성·마진 모두 강함. 리드타임·수주잔고 등 정식 병목 검증으로 이어가세요.`;
+  } else if (growthOk || marginOk) {
+    txt = `<strong>병목 후보 가능성: 보통</strong><br>
+    일부 재무 신호는 긍정적이나 전체 그림 확인이 필요합니다.<br>
+    정식 병목 검증 전까지는 관찰 후보로 분류하세요.`;
+  } else {
+    txt = `<strong>병목 후보 가능성: 낮음</strong><br>
+    현재 Finviz 수치에서 뚜렷한 병목 신호가 보이지 않습니다.<br>
+    추가 자료 확인 후 재판단을 권장합니다.`;
+  }
+  txt += `<br><span style="font-size:11px;opacity:.6;margin-top:4px;display:block">
+    ※ 이 예비 신호는 참고용입니다. 리드타임·수주잔고·LTA 등 아래 항목을 직접 확인한 뒤 정식 병목 판정을 진행하세요.
+  </span>`;
+
+  verdict.innerHTML = txt;
+  card.classList.add('visible');
+}
+
+function clearFinviz() {
+  document.getElementById('fvz-paste').value = '';
+  document.getElementById('fvz-signal-card').classList.remove('visible');
+  document.getElementById('fvz-status').textContent = '';
+  document.getElementById('fvz-status').className = 'fvz-status';
+  // 자동입력된 필드 스타일 초기화
+  ['f-ticker','f-rev','f-curr-opm'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.borderColor = '';
+      el.style.background = '';
+      const badge = el.parentNode.querySelector('.fsc-filled-badge');
+      if (badge) badge.remove();
+    }
+  });
+}
+
+function setFvzStatus(msg, type) {
+  const el = document.getElementById('fvz-status');
+  el.textContent = msg;
+  el.className = 'fvz-status ' + (type || '');
+}
 
 /* ═══════════════════════════════════════
    STORAGE
