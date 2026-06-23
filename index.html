@@ -17,6 +17,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>통합 병목 투자 판정기 vFinal</title>
 <style>
+/* ===== 간단 검수용 바로가기 바 ===== */
+.quick-bar {
+  position: sticky; top: 0; z-index: 999;
+  display: flex; gap: 8px; flex-wrap: wrap;
+  background: var(--bg); border-bottom: 1px solid var(--border-strong);
+  padding: 10px 16px 12px; margin: -24px -16px 20px;
+}
+.quick-bar-label {
+  width: 100%; font-size: 11px; font-family: var(--mono); letter-spacing: 0.08em;
+  color: var(--text-tertiary); margin-bottom: 2px;
+}
+.quick-link {
+  flex: 1 1 auto; min-width: 90px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 8px; border-radius: 8px; border: 1px solid var(--border-strong);
+  background: var(--bg-card); color: var(--text); text-decoration: none;
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  text-align: center; white-space: nowrap;
+}
+.quick-link:active { opacity: 0.7; }
+.quick-link .dot {
+  width: 7px; height: 7px; border-radius: 50%; flex: none;
+}
+.quick-link.qp .dot { background: #2D6FA3; }
+.quick-link.qg .dot { background: #1B7A5E; }
+.quick-link.qm .dot { background: #B0631F; }
+
 /* ===== 기본 디자인 토큰 (기존 유지) ===== */
 :root {
   --bg: #FBF7EF;
@@ -235,6 +262,20 @@ details > summary { cursor: pointer; font-size: 13px; color: var(--text-secondar
 </head>
 <body>
 <div class="wrap">
+
+  <!-- ===== 간단 검수용 바로가기 바 (폰에서 빠르게 확인할 때) ===== -->
+  <div class="quick-bar">
+    <div class="quick-bar-label">⚡ 간단 검수 바로가기</div>
+    <a class="quick-link qp" href="https://www.perplexity.ai/spaces/byeongmog-panjeong-n3X9PTHVTISh4mTZcjPS3g" target="_blank" rel="noopener noreferrer">
+      <span class="dot"></span>Perplexity
+    </a>
+    <a class="quick-link qg" href="https://chatgpt.com/g/g-6a39d86078808191bedad59ddde2d8e9-byeongmog-tuja-mobail-ganipanjeong-jonghab-bunseogga" target="_blank" rel="noopener noreferrer">
+      <span class="dot"></span>GPTs
+    </a>
+    <a class="quick-link qm" href="https://gemini.google.com/gem/1LF8SnwG48VGbwh8HFiA_4NCTRUoHl-9I?usp=sharing" target="_blank" rel="noopener noreferrer">
+      <span class="dot"></span>Gemini
+    </a>
+  </div>
 
   <!-- ===== 헤더 ===== -->
   <div class="eyebrow">BOTTLENECK INVESTMENT SCREENER · vFinal · GitHub Pages</div>
@@ -809,21 +850,20 @@ function getMissingS2RecommendedFromValues(values) {
   return missing;
 }
 
-function getS2DataQuality(missingCount) {
-  if (missingCount === 0) return { level:'충분', cls:'verdict-strong', note:'정밀판정 권장 항목이 모두 입력되었습니다.' };
-  if (missingCount <= 3) return { level:'보통', cls:'verdict-watch', note:'일부 정밀판정 항목이 누락되어 참고 판정으로 해석해야 합니다.' };
-  if (missingCount <= 8) return { level:'낮음', cls:'verdict-theme', note:'정밀판정 누락 항목이 많아 점수 신뢰도가 낮습니다.' };
+function getS2DataQuality(confidenceRatio) {
+  if (confidenceRatio >= 80) return { level:'충분', cls:'verdict-strong', note:'정밀판정 자료가 충분히 확인되었습니다.' };
+  if (confidenceRatio >= 60) return { level:'보통', cls:'verdict-watch', note:'일부 항목이 누락되어 참고 판정으로 해석해야 합니다.' };
+  if (confidenceRatio >= 40) return { level:'낮음', cls:'verdict-theme', note:'누락 항목이 많아 점수 신뢰도가 낮습니다.' };
   return { level:'매우 낮음', cls:'verdict-danger', note:'정밀판정 자료가 크게 부족합니다. 점수보다 누락 항목 확인을 우선하세요.' };
 }
 
-function applyPrecisionDataGapLabel(integrated, missingCount, s2grade) {
-  if (!missingCount || missingCount <= 0) return integrated;
-  const q = getS2DataQuality(missingCount);
-  // 정밀 자료가 부족한 경우 원래 매트릭스 라벨을 보존하되, 확정 판정처럼 보이지 않게 표시한다.
-  const suffix = missingCount >= 4 ? ' / 정밀자료 부족' : ' / 정밀자료 확인 필요';
+function applyPrecisionDataGapLabel(integrated, confidenceRatio, s2grade) {
+  if (confidenceRatio >= 100) return integrated;
+  const q = getS2DataQuality(confidenceRatio);
+  const suffix = confidenceRatio < 60 ? ' / 정밀자료 부족' : ' / 정밀자료 확인 필요';
   return {
     label: `${integrated.label}${suffix}`,
-    reason: `${integrated.reason} 단, 정밀판정 권장 항목 ${missingCount}개가 비어 있어 ${q.note}`
+    reason: `${integrated.reason} 단, 정밀판정 확인 자료가 ${confidenceRatio}%만 확보되어 ${q.note}`
   };
 }
 
@@ -972,8 +1012,9 @@ function checkReadyToJudge() {
       parts.push('<span style="color:var(--warn);">예비신호 자료 부족: ' + s1Missing.map(m => escapeHTML(m)).join(' / ') + '<br>예비 신호는 “자료 부족”으로 표시되거나 제한적으로 해석됩니다.</span>');
     }
     if (s2Missing.length > 0) {
-      const q = getS2DataQuality(s2Missing.length);
-      parts.push('<span style="color:var(--warn);">정밀판정 자료 부족: ' + s2Missing.map(m => escapeHTML(m)).join(' / ') + '<br>확인된 값만으로 참고 판정을 진행합니다. 자료 신뢰도: ' + q.level + '</span>');
+      const approxRatio = round2(((S2_RECOMMENDED.length - s2Missing.length) / S2_RECOMMENDED.length) * 100);
+      const q = getS2DataQuality(approxRatio);
+      parts.push('<span style="color:var(--warn);">정밀판정 자료 부족: ' + s2Missing.map(m => escapeHTML(m)).join(' / ') + '<br>확인된 값만으로 비례 환산한 참고 판정을 진행합니다. 자료 신뢰도(근사): ' + q.level + '</span>');
     }
     warn.innerHTML = parts.join('<br>');
   }
@@ -1045,117 +1086,108 @@ const BASE_MAX = 100;
 // clamp / round2 는 STEP02에서 이미 정의됨
 
 // ===== 사업 병목성 채점 (30점) =====
+// ===== v2 비례환산 유틸 =====
+// 카테고리 안에서 확인된(빈값 아닌) 항목만으로 점수를 계산하고,
+// 카테고리 전체 배점에 (확인된 만점 비율)을 곱해 비례 환산한다.
+// 카테고리 전체가 비어 있으면(확인된 항목이 0개) 0점 그대로 둔다 — 추측하지 않는다.
+function isFilled(v) {
+  return v !== null && v !== undefined && v !== '' && !(typeof v === 'number' && isNaN(v));
+}
+function proRate(items, categoryMax) {
+  const known = items.filter(i => i.has);
+  const knownMaxRaw = known.reduce((s, i) => s + i.max, 0);
+  const totalMaxRaw = items.reduce((s, i) => s + i.max, 0);
+  const knownScoreRaw = known.reduce((s, i) => s + i.score(), 0);
+  if (knownMaxRaw === 0) {
+    return { score: 0, knownMaxScaled: 0, totalMax: categoryMax, ratio: 0 };
+  }
+  const score = round2((knownScoreRaw / knownMaxRaw) * categoryMax);
+  const knownMaxScaled = round2((knownMaxRaw / totalMaxRaw) * categoryMax);
+  return { score, knownMaxScaled, totalMax: categoryMax, ratio: knownMaxRaw / totalMaxRaw };
+}
+
+// ===== 사업 병목성 채점 (30점, v2 비례환산) =====
 function scoreBottleneck(inp) {
-  // vFinal-100 원칙: 사업병목성은 30점 만점.
-  // 시장점유율은 시장점유율% / 10으로 0~10점 선형 환산한다.
-  const mktShare = clamp(inp.mktShare ?? 0, 0, 100);
-  const shareScore = Math.min(10, mktShare / 10.0);
-  const irreplace  = clamp(inp.irreplace  ?? 0, 0, 7);
-  const barrier    = clamp(inp.barrier    ?? 0, 0, 6);
-  const switchCost = clamp(inp.switchCost ?? 0, 0, 4);
-  const durability = clamp(inp.durability ?? 0, 0, 3);
-  return round2(shareScore + irreplace + barrier + switchCost + durability);
+  const items = [
+    { max: 10, has: isFilled(inp.mktShare),   score: () => Math.min(10, clamp(inp.mktShare ?? 0, 0, 100) / 10.0) },
+    { max: 7,  has: isFilled(inp.irreplace),  score: () => clamp(inp.irreplace ?? 0, 0, 7) },
+    { max: 6,  has: isFilled(inp.barrier),    score: () => clamp(inp.barrier ?? 0, 0, 6) },
+    { max: 4,  has: isFilled(inp.switchCost), score: () => clamp(inp.switchCost ?? 0, 0, 4) },
+    { max: 3,  has: isFilled(inp.durability), score: () => clamp(inp.durability ?? 0, 0, 3) },
+  ];
+  return proRate(items, 30);
 }
 
-// ===== 수요 가시성 채점 (15점) =====
+// ===== 수요 가시성 채점 (15점, v2 비례환산) =====
 function scoreVisibility(inp) {
-  // 수요가시성 15점 = 수주잔고 6 + 현재 공급대기기간 5 + 매출전환속도 4
-  const backlogMo = inp.backlogMo ?? 0;
-  const leadMo    = inp.leadMo    ?? 0;
-  const convMo    = inp.convSpeed ?? null;
-
-  const backlogScore = backlogMo >= 12 ? 6 : backlogMo >= 6 ? 4 : backlogMo >= 3 ? 2 : 0;
-  const leadScore    = leadMo    >= 12 ? 5 : leadMo    >= 6 ? 3 : leadMo    >= 3 ? 1 : 0;
-  let convScore = 0;
-  if (convMo !== null && !isNaN(convMo)) {
-    convScore = convMo <= 3 ? 4 : convMo <= 6 ? 3 : convMo <= 12 ? 2 : 1;
-  }
-  return round2(clamp(backlogScore + leadScore + convScore, 0, 15));
+  const items = [
+    { max: 6, has: isFilled(inp.backlogMo), score: () => { const v = inp.backlogMo; return v>=12?6:v>=6?4:v>=3?2:0; } },
+    { max: 5, has: isFilled(inp.leadMo),    score: () => { const v = inp.leadMo;    return v>=12?5:v>=6?3:v>=3?1:0; } },
+    { max: 4, has: isFilled(inp.convSpeed), score: () => { const v = inp.convSpeed; return v<=3?4:v<=6?3:v<=12?2:1; } },
+  ];
+  return proRate(items, 15);
 }
 
-// ===== 수익성 채점 (20점) =====
+// ===== 수익성 채점 (20점, v2 비례환산) =====
 function scoreProfitability(inp) {
-  // 수익성 20점 = Forward OPM 8 + FCF마진 6 + OPM YoY 변화 4 + ROIC 2
-  const opm  = inp.fwdOpm    ?? 0;
-  const fcf  = inp.fcfMargin ?? null;
-  const yoy  = inp.opmYoY    ?? null;
-  const roic = inp.roic      ?? null;
-
-  const opmScore = Math.max(0, Math.min(8, 8 * (opm / 35.0)));
-
-  let fcfScore = 0;
-  if (fcf !== null && !isNaN(fcf)) {
-    fcfScore = fcf >= 20 ? 6 : fcf >= 10 ? 4 : fcf >= 0 ? 2 : 0;
-  }
-
-  let yoyScore = 0;
-  if (yoy !== null && !isNaN(yoy)) {
-    yoyScore = yoy >= 3 ? 4 : yoy >= -1 ? 2 : yoy >= -3 ? 1 : 0;
-  }
-
-  let roicScore = 0;
-  if (roic !== null && !isNaN(roic)) {
-    roicScore = roic >= 25 ? 2 : roic >= 15 ? 1 : 0;
-  }
-
-  return round2(clamp(opmScore + fcfScore + yoyScore + roicScore, 0, 20));
+  const items = [
+    { max: 8, has: isFilled(inp.fwdOpm),    score: () => Math.max(0, Math.min(8, 8 * (inp.fwdOpm / 35.0))) },
+    { max: 6, has: isFilled(inp.fcfMargin), score: () => { const v = inp.fcfMargin; return v>=20?6:v>=10?4:v>=0?2:0; } },
+    { max: 4, has: isFilled(inp.opmYoY),    score: () => { const v = inp.opmYoY;    return v>=3?4:v>=-1?2:v>=-3?1:0; } },
+    { max: 2, has: isFilled(inp.roic),      score: () => { const v = inp.roic;      return v>=25?2:v>=15?1:0; } },
+  ];
+  return proRate(items, 20);
 }
 
-// ===== 밸류에이션 채점 (15점) =====
+// ===== 밸류에이션 채점 (15점, v2 비례환산) =====
 function scoreValuation(inp) {
-  // 밸류에이션 15점 = Forward PEG 10 + 업종대비 P/E차 2 + 역사적밴드 3
-  const peg    = inp.fwdPeg   ?? null;
-  const peDiff = inp.peDiff   ?? null;
-  const band   = inp.histBand ?? null;
-
-  let pegScore = 0;
-  if (peg !== null && !isNaN(peg)) {
-    pegScore = peg <= 0 ? 0 : peg <= 1 ? 10 : peg <= 1.5 ? 8.5 : peg <= 2.5 ? 6 : peg <= 4 ? 3 : 1;
-  }
-
-  let peScore = 0;
-  if (peDiff !== null && !isNaN(peDiff)) {
-    peScore = peDiff <= -30 ? 2 : peDiff <= 0 ? 1 : 0;
-  }
-
-  const bandMap = { low: 3, mid: 1.5, high: 0.5, peak_out_risk: 0 };
-  const bandScore = bandMap.hasOwnProperty(band) ? bandMap[band] : 0;
-
-  return round2(clamp(pegScore + peScore + bandScore, 0, 15));
+  const items = [
+    { max: 10, has: isFilled(inp.fwdPeg),   score: () => { const v = inp.fwdPeg; return v<=0?0:v<=1?10:v<=1.5?8.5:v<=2.5?6:v<=4?3:1; } },
+    { max: 2,  has: isFilled(inp.peDiff),   score: () => { const v = inp.peDiff; return v<=-30?2:v<=0?1:0; } },
+    { max: 3,  has: isFilled(inp.histBand), score: () => ({ low:3, mid:1.5, high:0.5, peak_out_risk:0 }[inp.histBand] ?? 0) },
+  ];
+  return proRate(items, 15);
 }
 
-// ===== 재무 안정성 채점 (10점) =====
+// ===== 재무 안정성 채점 (10점, v2 비례환산) =====
+// 순현금/D-E는 "둘 중 하나만 있어도" 평가 가능한 항목이라 하나로 묶어서 본다.
 function scoreFinancial(inp) {
-  // 재무안정성 10점 = 순현금/D/E 6 + 이자보상배율 4
-  // 베타는 재무건전성이 아니라 주가 변동성 지표이므로 점수에서 제외하고 참고 항목으로만 표시한다.
-  const netCash = inp.netCash;
-  const de      = inp.de   ?? null;
-  const icr     = inp.icr  ?? null;
-
-  let balanceScore = 0;
-  if (netCash === 'true' || netCash === true) balanceScore = 6;
-  else if (de !== null && !isNaN(de)) balanceScore = de <= 0.3 ? 5 : de <= 1 ? 3 : de <= 1.5 ? 1 : 0;
-
-  let icrScore = 0;
-  if (icr !== null && !isNaN(icr)) icrScore = icr >= 10 ? 4 : icr >= 5 ? 3 : icr >= 3 ? 2 : icr >= 1.5 ? 1 : 0;
-
-  return round2(clamp(balanceScore + icrScore, 0, 10));
+  const items = [
+    { max: 6, has: isFilled(inp.netCash) || isFilled(inp.de), score: () => {
+        if (inp.netCash === 'true' || inp.netCash === true) return 6;
+        if (isFilled(inp.de)) { const v = inp.de; return v<=0.3?5:v<=1?3:v<=1.5?1:0; }
+        return 0;
+      } },
+    { max: 4, has: isFilled(inp.icr), score: () => { const v = inp.icr; return v>=10?4:v>=5?3:v>=3?2:v>=1.5?1:0; } },
+  ];
+  return proRate(items, 10);
 }
 
 // ===== 리스크 감점 (최대 15점) =====
+// v2 원칙: 리스크 항목은 비례환산하지 않는다. 빈 항목은 0감점으로 두고,
+// "감점이 과소 반영될 수 있다"는 경고를 별도로 강하게 표시한다(가점과는 반대로
+// 누락을 0으로 두는 쪽이 더 안전하다 — 모르는 위험을 멋대로 깎아주지 않는다).
 function scoreRisk(inp) {
-  // 리스크 감점은 0~15의 양수 penalty로 계산하고, 최종점수에서 차감한다.
-  // 구성: 고객집중도 최대4 + 지정학4 + 사이클/역병목3 + 기술대체2 + 회계/지배구조2
-  const cc    = inp.custConc ?? null;
+  const cc    = inp.custConc;
   const geo   = clamp(inp.geoRisk   ?? 0, 0, 4);
   const cycle = clamp(inp.cycleRisk ?? 0, 0, 3);
   const tech  = clamp(inp.techRisk  ?? 0, 0, 2);
   const gov   = clamp(inp.govRisk   ?? 0, 0, 2);
 
   let customerPenalty = 0;
-  if (cc !== null && !isNaN(cc)) customerPenalty = cc >= 70 ? 4 : cc >= 50 ? 2 : 0;
+  if (isFilled(cc)) customerPenalty = cc >= 70 ? 4 : cc >= 50 ? 2 : 0;
 
-  return round2(clamp(customerPenalty + geo + cycle + tech + gov, 0, 15));
+  const missingRiskLabels = [];
+  if (!isFilled(cc))            missingRiskLabels.push('고객집중도');
+  if (!isFilled(inp.geoRisk))   missingRiskLabels.push('지정학리스크');
+  if (!isFilled(inp.cycleRisk)) missingRiskLabels.push('사이클·역병목');
+  if (!isFilled(inp.techRisk))  missingRiskLabels.push('기술대체위험');
+  if (!isFilled(inp.govRisk))   missingRiskLabels.push('회계·지배구조');
+
+  return {
+    penalty: round2(clamp(customerPenalty + geo + cycle + tech + gov, 0, 15)),
+    missingRiskLabels,
+  };
 }
 
 // ===== 게이트 상한 결정 =====
@@ -1186,24 +1218,52 @@ function applyGate(raw, cap) {
   return ri > ci ? cap : raw;
 }
 
-// ===== scoreStock: 정밀판정 메인 채점 (절대 변경 금지) =====
+// ===== scoreStock: 정밀판정 메인 채점 (v2: 비례환산 + 자료신뢰도) =====
 function scoreStock(inp) {
-  const bottleneck    = scoreBottleneck(inp);
-  const visibility    = scoreVisibility(inp);
-  const profitability = scoreProfitability(inp);
-  const valuation     = scoreValuation(inp);
-  const financial     = scoreFinancial(inp);
-  const riskPenalty   = scoreRisk(inp);
+  const bn   = scoreBottleneck(inp);
+  const vis  = scoreVisibility(inp);
+  const prof = scoreProfitability(inp);
+  const val  = scoreValuation(inp);
+  const fin  = scoreFinancial(inp);
+  const risk = scoreRisk(inp);
+
+  const bottleneck    = bn.score;
+  const visibility     = vis.score;
+  const profitability  = prof.score;
+  const valuation      = val.score;
+  const financial       = fin.score;
+  const riskPenalty    = risk.penalty;
 
   // 세부 원점수는 90점 만점. 이를 100점 만점 본점수로 환산한 뒤 리스크 감점을 차감한다.
   const base90  = round2(bottleneck + visibility + profitability + valuation + financial);
   const base    = round2(base90 * 100 / 90);
   const final   = round2(Math.max(0, base - riskPenalty));
+  // 게이트는 비례환산된 병목성 점수를 그대로 기준으로 삼는다 — 병목성 자료가
+  // 부족하면 게이트도 낮게 잡혀 과대평가를 막는다.
   const cap     = gateCap(bottleneck);
   const raw     = rawGrade(final);
   const grade   = applyGate(raw, cap);
 
-  return { bottleneck, visibility, profitability, valuation, financial, riskPenalty, base90, base, final, cap, raw, grade };
+  // 자료신뢰도: 5개 카테고리의 (확인된 배점 합 / 90점) 비율.
+  const totalKnownMax = round2(bn.knownMaxScaled + vis.knownMaxScaled + prof.knownMaxScaled + val.knownMaxScaled + fin.knownMaxScaled);
+  const confidenceRatio = round2((totalKnownMax / 90) * 100);
+
+  let confidenceLevel, gradeSuffix;
+  if (confidenceRatio >= 80)      { confidenceLevel = '충분';    gradeSuffix = ''; }
+  else if (confidenceRatio >= 60) { confidenceLevel = '보통';    gradeSuffix = ' (주의)'; }
+  else if (confidenceRatio >= 40) { confidenceLevel = '낮음';    gradeSuffix = ' 참고'; }
+  else                             { confidenceLevel = '매우 낮음'; gradeSuffix = ''; }
+  // confidenceRatio < 40 인 경우는 등급 자체보다 "자료 부족"이 메시지의 핵심이 되도록
+  // 화면 렌더링 쪽에서 별도 처리한다(gradeDisplayOverride).
+  const gradeDisplayOverride = confidenceRatio < 40 ? `자료 부족 (참고점수 ${final})` : null;
+  const gradeDisplay = gradeDisplayOverride || (grade + gradeSuffix);
+
+  return {
+    bottleneck, visibility, profitability, valuation, financial, riskPenalty,
+    base90, base, final, cap, raw, grade,
+    confidenceRatio, confidenceLevel, gradeDisplay,
+    missingRiskLabels: risk.missingRiskLabels,
+  };
 }
 
 // ===== 예비신호 채점 엔진 =====
@@ -1359,9 +1419,10 @@ function buildResultText(ticker, name, s1inp, s1res, s1verdict, s2inp, s2res, in
     `본점수: ${s2res.base}점 / ${BASE_MAX}점`,
     `리스크 감점: -${s2res.riskPenalty}점`,
     `최종점수: ${s2res.final}점`,
-    `원등급: ${s2res.raw} / 게이트상한: ${s2res.cap} / 최종등급: ${s2res.grade}`,
+    `원등급: ${s2res.raw} / 게이트상한: ${s2res.cap} / 최종등급: ${s2res.gradeDisplay}`,
+    `자료 신뢰도: ${s2res.confidenceLevel} (${s2res.confidenceRatio}%)`,
     `베타(변동성 참고): ${s2inp && s2inp.beta !== null ? s2inp.beta : '—'}`,
-    ...(() => { const missing = typeof getMissingS2RecommendedFromValues === 'function' ? getMissingS2RecommendedFromValues(s2inp) : []; return missing.length ? [`정밀판정 자료부족 항목: ${missing.join(', ')}`] : []; })(),
+    ...(s2res.missingRiskLabels && s2res.missingRiskLabels.length ? [`리스크 항목 누락(0감점 처리, 과소반영 가능): ${s2res.missingRiskLabels.join(', ')}`] : []),
     ...(s2inp && s2inp.fwdPeg !== null && s2inp.fwdPeg <= 0 ? [`주의: Forward PEG가 0 이하 또는 산정 불가에 가까운 값입니다. 적자, 역성장, 추정치 불안정 가능성을 확인하세요.`] : []),
     ``,
     `[통합 해석]`,
@@ -1421,11 +1482,21 @@ function renderUnifiedResult(ticker, name, s1inp, s1res, s1verdict, s2inp, s2res
   }
 
   let s2DataGapHtml = '';
-  const s2MissingForResult = typeof getMissingS2RecommendedFromValues === 'function' ? getMissingS2RecommendedFromValues(s2inp) : [];
-  if (s2MissingForResult.length > 0) {
-    const q = getS2DataQuality(s2MissingForResult.length);
-    const missingTxt = s2MissingForResult.map(escapeHTML).join(' / ');
-    s2DataGapHtml = `<div class="gate-note">ⓘ 정밀판정 자료 부족: ${missingTxt}<br>확인된 값만으로 계산한 참고 판정입니다. 자료 신뢰도: <strong>${q.level}</strong>. 특히 리스크 항목이 비어 있으면 감점이 과소 반영될 수 있으므로 반드시 추가 확인하세요.</div>`;
+  const hasRiskGap = s2res.missingRiskLabels && s2res.missingRiskLabels.length > 0;
+  if (s2res.confidenceRatio < 100 || hasRiskGap) {
+    const barColor = s2res.confidenceRatio >= 80 ? 'var(--accent)' : s2res.confidenceRatio >= 60 ? 'var(--warn)' : 'var(--danger)';
+    const riskNote = hasRiskGap
+      ? `<br>⚠ 리스크 항목 누락: ${s2res.missingRiskLabels.map(escapeHTML).join(' / ')} — 해당 리스크는 0감점으로 처리되어 실제보다 안전하게 보일 수 있습니다. 반드시 직접 확인하세요.`
+      : '';
+    const confidenceBlock = s2res.confidenceRatio < 100 ? `
+      ⓘ 정밀판정 자료 신뢰도: <strong>${s2res.confidenceLevel}</strong> (확인된 배점 ${round2(s2res.confidenceRatio * 90 / 100)}점 / 90점, ${s2res.confidenceRatio}%)
+      <div style="height:6px; background:var(--bg-secondary); border-radius:3px; margin:6px 0; overflow:hidden;">
+        <div style="height:100%; width:${s2res.confidenceRatio}%; background:${barColor};"></div>
+      </div>
+      누락된 항목이 있는 카테고리는 확인된 값만으로 비례 환산했습니다(추측해서 채우지 않았습니다).
+      ${s2res.confidenceRatio < 40 ? '<br><strong>자료가 크게 부족하여 이 등급은 확정 등급이 아니라 참고용입니다.</strong>' : ''}
+    ` : 'ⓘ 사업병목성·수요가시성·수익성·밸류에이션·재무안정성 자료는 모두 확인되었습니다.';
+    s2DataGapHtml = `<div class="gate-note">${confidenceBlock}${riskNote}</div>`;
   }
 
   const html = `
@@ -1514,7 +1585,9 @@ function renderUnifiedResult(ticker, name, s1inp, s1res, s1verdict, s2inp, s2res
           &nbsp;/&nbsp;
           <span style="font-size:13px; color:var(--text-tertiary);">${s2res.cap}</span>
           &nbsp;→&nbsp;
-          <span class="grade-chip grade-${s2res.grade}">${s2res.grade}</span>
+          ${s2res.confidenceRatio < 40
+            ? `<span style="font-size:14px; color:var(--danger); font-weight:600;">${escapeHTML(s2res.gradeDisplay)}</span>`
+            : `<span class="grade-chip grade-${s2res.grade}">${s2res.grade}</span><span style="font-size:12px; color:var(--text-secondary);">${s2res.gradeDisplay.replace(s2res.grade, '')}</span>`}
         </div>
       </div>
     </div>
@@ -1580,7 +1653,7 @@ function renderUnifiedResult(ticker, name, s1inp, s1res, s1verdict, s2inp, s2res
         stage1Result:  { score: s1res.score, verdict: s1verdict, ltRatio: s1res.ltRatio, opmChange: s1res.opmChange },
         stage2Inputs:  s2inp,
         stage2Result:  s2res,
-        stage2DataGap: { missing: typeof getMissingS2RecommendedFromValues === 'function' ? getMissingS2RecommendedFromValues(s2inp) : [], quality: typeof getS2DataQuality === 'function' ? getS2DataQuality((typeof getMissingS2RecommendedFromValues === 'function' ? getMissingS2RecommendedFromValues(s2inp) : []).length).level : '' },
+        stage2DataGap: { confidenceRatio: s2res.confidenceRatio, quality: s2res.confidenceLevel, missingRisk: s2res.missingRiskLabels },
         integratedResult: integrated,
         aiRawTexts, memo,
       });
@@ -1614,8 +1687,7 @@ document.getElementById('btn_unified_judge')?.addEventListener('click', () => {
 
   // ⑤ 통합 해석
   let integrated = calcIntegratedResult(s1verdict, s1res.score, s2res.grade);
-  const s2Missing = typeof getMissingS2RecommendedFromValues === 'function' ? getMissingS2RecommendedFromValues(s2inp) : [];
-  integrated = applyPrecisionDataGapLabel(integrated, s2Missing.length, s2res.grade);
+  integrated = applyPrecisionDataGapLabel(integrated, s2res.confidenceRatio, s2res.grade);
 
   // ⑥ 종목 정보
   const ticker = document.getElementById('u_ticker')?.value.trim() || '';
