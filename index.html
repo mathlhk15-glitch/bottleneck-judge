@@ -1400,6 +1400,15 @@ function renderUnifiedResult(ticker, name, s1inp, s1res, s1verdict, s2inp, s2res
     opmWarnHtml = `<div class="danger-note">⚠ OPM 하락 해석 주의: 전년 대비 ${s1res.opmChange}%p 하락했습니다. 이는 단기 진입 타이밍상 경고 신호입니다. 정밀 판정의 수익성 점수는 장기 구조적 수익성을 별도로 평가하므로 두 결과가 다르게 나올 수 있습니다. 진입 타이밍은 예비 신호를 우선하고, 기업의 구조적 질은 정밀 판정을 함께 참고하세요.</div>`;
   }
 
+  // 예비신호 자료 부족 안내
+  let s1DataGapHtml = '';
+  if (s1res && s1res.dataStatus === 'data_gap') {
+    const missing = Array.isArray(s1res.missingCore) && s1res.missingCore.length > 0
+      ? s1res.missingCore.map(escapeHTML).join(' / ')
+      : '핵심 예비신호 항목';
+    s1DataGapHtml = `<div class="gate-note">ⓘ 예비신호 자료 부족: ${missing}<br>리드타임·OPM·매출 증가율 등 핵심 예비신호가 부족하여 예비 점수는 계산하지 않고 정밀 판정 중심으로 참고 해석합니다.</div>`;
+  }
+
   let pegWarnHtml = '';
   if (s2inp && s2inp.fwdPeg !== null && s2inp.fwdPeg <= 0) {
     pegWarnHtml = `<div class="danger-note">⚠ Forward PEG가 0 이하 또는 산정 불가에 가까운 값입니다. 적자, 역성장, 추정치 불안정 가능성이 있으므로 밸류에이션 점수 해석에 주의하세요.</div>`;
