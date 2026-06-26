@@ -779,6 +779,15 @@ const FIELD_DEFS = [
   { key:'histBand',   label:'역사적밴드',       unit:'',    type:'select', group:'밸류에이션 (15점)',
     req:true, options:['low','mid','high','peak_out_risk'],
     patterns:[/역사적\s*밴드[^a-z]{0,5}(low|mid|high|peak_out_risk)/i] },
+  { key:'ecrEps',     label:'EPS 증가율 (1년)', unit:'%',   type:'number', group:'밸류에이션 보정 (AI 추정)',
+    req:false, patterns:[/eps\s*증가율[^0-9\-]{0,8}(-?[\d.]+)\s*%?/i] },
+  { key:'ecrPrice',   label:'주가 상승률 (1년)', unit:'%',   type:'number', group:'밸류에이션 보정 (AI 추정)',
+    req:false, patterns:[/주가\s*상승률[^0-9\-]{0,8}(-?[\d.]+)\s*%?/i] },
+  { key:'cycleSensitive', label:'경기민감주 여부', unit:'', type:'select', group:'밸류에이션 보정 (AI 추정)',
+    req:false, options:['구조적성장주','혼합형','경기민감주'],
+    patterns:[/경기민감주\s*여부[^가-힣]{0,5}(구조적성장주|혼합형|경기민감주)/i] },
+  { key:'midCycleOpm', label:'중간사이클 OPM (5~7년 평균)', unit:'%', type:'number', group:'밸류에이션 보정 (AI 추정)',
+    req:false, patterns:[/중간\s*사이클\s*opm[^0-9\-]{0,8}(-?[\d.]+)\s*%?/i] },
   // ── 재무 안정성 (10점) ───────────────────────────────────────────
   { key:'netCash',    label:'순현금 여부',      unit:'',    type:'select', group:'재무 안정성 (10점)',
     req:true, options:['true','false'],
@@ -912,7 +921,8 @@ function renderCompareTable(parsed) {
 
   let html = '';
   Object.entries(groups).forEach(([gname, fields]) => {
-    html += `<div class="group-title">${escapeHTML(gname)}</div>
+    const isAiEst = gname.includes('AI 추정');
+    html += `<div class="group-title">${escapeHTML(gname)}${isAiEst ? ' <span style="font-size:11px;font-weight:400;color:var(--warn);">※ AI 추정값 · 신뢰도 낮음 · 최종확인 필요</span>' : ''}</div>
     <table class="compare-table">
       <thead><tr>
         <th>항목</th>
@@ -1146,7 +1156,52 @@ function scoreValuation(inp) {
     { max: 2,  has: isFilled(inp.peDiff),   score: () => { const v = inp.peDiff; return v<=-30?2:v<=0?1:0; } },
     { max: 3,  has: isFilled(inp.histBand), score: () => ({ low:3, mid:1.5, high:0.5, peak_out_risk:0 }[inp.histBand] ?? 0) },
   ];
-  return proRate(items, 15);
+  const base = proRate(items, 15);
+
+  // ── 이익 기여율(ECR) cap ──────────────────────────────────────────
+  let ecrCap = 15, ecrLabel = null, ecrStatus = 'skipped';
+  const epsG = parseFloat(inp.ecrEps);
+  const priceG = parseFloat(inp.ecrPrice);
+  if (!isNaN(epsG) && !isNaN(priceG) && Math.abs(priceG) >= 10) {
+    if (priceG > 0 && epsG <= 0) {
+      // EPS 감소 중 주가 상승 — 가장 위험한 패턴
+      ecrCap = 6; ecrLabel = 'EPS감소+주가상승'; ecrStatus = 'danger';
+    } else if (priceG > 0) {
+      const ecr = round2(epsG / priceG);
+      if      (ecr >= 0.7) { ecrCap = 15; ecrLabel = `ECR ${ecr} (이익주도)`; ecrStatus = 'good'; }
+      else if (ecr >= 0.5) { ecrCap = 13; ecrLabel = `ECR ${ecr} (혼합)`; ecrStatus = 'warn'; }
+      else if (ecr >= 0.3) { ecrCap = 11; ecrLabel = `ECR ${ecr} (멀티플↑)`; ecrStatus = 'warn'; }
+      else                 { ecrCap = 9;  ecrLabel = `ECR ${ecr} (테마/기대감)`; ecrStatus = 'danger'; }
+    } else {
+      ecrStatus = 'skipped'; // 주가 하락 기간엔 비율 왜곡 — 판정 보류
+    }
+  }
+
+  // ── 경기민감주 사이클 피크 cap ────────────────────────────────────
+  let cycleCap = 15, cycleLabel = null, cycleStatus = 'skipped';
+  if (inp.cycleSensitive === '경기민감주' || inp.cycleSensitive === '혼합형') {
+    const fwdOpm = parseFloat(inp.fwdOpm);
+    const midOpm = parseFloat(inp.midCycleOpm);
+    if (!isNaN(fwdOpm) && !isNaN(midOpm) && midOpm > 0) {
+      const peakRatio = round2(fwdOpm / midOpm);
+      if      (peakRatio <= 1.2) { cycleCap = 15; cycleLabel = `피크비율 ${peakRatio} (정상)`; cycleStatus = 'good'; }
+      else if (peakRatio <= 1.5) { cycleCap = 13; cycleLabel = `피크비율 ${peakRatio} (상단사이클)`; cycleStatus = 'warn'; }
+      else if (peakRatio <= 2.0) { cycleCap = 10; cycleLabel = `피크비율 ${peakRatio} (정점근접)`; cycleStatus = 'warn'; }
+      else                       { cycleCap = 7;  cycleLabel = `피크비율 ${peakRatio} (정점이익 의심)`; cycleStatus = 'danger'; }
+    }
+  }
+
+  const finalScore = round2(Math.min(base.score, ecrCap, cycleCap));
+  const capApplied = finalScore < base.score;
+
+  return {
+    ...base,
+    score: finalScore,
+    ecrCap, ecrLabel, ecrStatus,
+    cycleCap, cycleLabel, cycleStatus,
+    capApplied,
+    rawValScore: base.score,
+  };
 }
 
 // ===== 재무 안정성 채점 (10점, v2 비례환산) =====
@@ -1263,6 +1318,11 @@ function scoreStock(inp) {
     base90, base, final, cap, raw, grade,
     confidenceRatio, confidenceLevel, gradeDisplay,
     missingRiskLabels: risk.missingRiskLabels,
+    // 밸류에이션 cap 보조 정보
+    capApplied: val.capApplied,
+    rawValScore: val.rawValScore,
+    ecrLabel: val.ecrLabel, ecrStatus: val.ecrStatus,
+    cycleLabel: val.cycleLabel, cycleStatus: val.cycleStatus,
   };
 }
 
@@ -1558,9 +1618,16 @@ function renderUnifiedResult(ticker, name, s1inp, s1res, s1verdict, s2inp, s2res
         <div class="label">수익성</div>
         <div class="value">${s2res.profitability}<span style="font-size:13px; color:var(--text-secondary);">/20</span></div>
       </div>
-      <div class="metric-card">
-        <div class="label">밸류에이션</div>
-        <div class="value">${s2res.valuation}<span style="font-size:13px; color:var(--text-secondary);">/15</span></div>
+      <div class="metric-card" style="${s2res.capApplied ? 'border-color:var(--warn);' : ''}">
+        <div class="label">밸류에이션${s2res.capApplied ? ' ⚠ cap 적용' : ''}</div>
+        <div class="value">
+          ${s2res.capApplied
+            ? `<span style="text-decoration:line-through;color:var(--text-tertiary);font-size:14px;">${s2res.rawValScore}</span> → ${s2res.valuation}`
+            : s2res.valuation
+          }<span style="font-size:13px; color:var(--text-secondary);">/15</span>
+        </div>
+        ${s2res.ecrLabel && s2res.ecrStatus !== 'skipped' ? `<div style="font-size:11px;color:var(--${s2res.ecrStatus==='good'?'accent':s2res.ecrStatus==='warn'?'warn':'danger'});margin-top:4px;">ECR: ${escapeHTML(s2res.ecrLabel)}</div>` : ''}
+        ${s2res.cycleLabel && s2res.cycleStatus !== 'skipped' ? `<div style="font-size:11px;color:var(--${s2res.cycleStatus==='good'?'accent':s2res.cycleStatus==='warn'?'warn':'danger'});margin-top:2px;">사이클: ${escapeHTML(s2res.cycleLabel)}</div>` : ''}
       </div>
       <div class="metric-card">
         <div class="label">재무 안정성</div>
