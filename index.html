@@ -443,6 +443,58 @@ details > summary { cursor: pointer; font-size: 13px; color: var(--text-secondar
         공백 항목은 자료 부족으로 표시하고, 확인된 값만으로 보수적 참고 판정을 진행합니다.
         예비 신호 점수와 정밀 판정 점수는 합산하지 않으며, 매트릭스 기반 통합 해석 라벨로 연결됩니다.
       </p>
+
+      <!-- ── 철학 필터: 최상위 6대 질문 ── -->
+      <details id="philosophy_filter_details" style="margin-bottom:14px;">
+        <summary style="font-size:13px; font-weight:600; color:var(--accent); cursor:pointer; padding:8px 0;">
+          🔍 철학 필터 — 최상위 6대 병목 질문 (점수 미반영, 선택 입력)
+        </summary>
+        <div style="margin-top:10px; display:flex; flex-direction:column; gap:10px;">
+          <p style="font-size:11px; color:var(--text-secondary); margin:0 0 4px; line-height:1.6;">
+            점수 계산 전에 먼저 이 질문에 답하세요. 점수에는 영향을 주지 않지만, 결과 화면에 표시됩니다.
+          </p>
+          <div id="q6_fields"></div>
+        </div>
+      </details>
+
+      <!-- ── 변별 명제 ── -->
+      <details id="thesis_details" style="margin-bottom:14px;">
+        <summary style="font-size:13px; font-weight:600; color:var(--accent); cursor:pointer; padding:8px 0;">
+          💡 변별 명제 — 시장과 나의 견해 차이 (점수 미반영, 선택 입력)
+        </summary>
+        <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+          <p style="font-size:11px; color:var(--text-secondary); margin:0 0 4px; line-height:1.6;">
+            좋은 회사 구경과 투자 아이디어를 구분하는 핵심입니다. 점수에는 영향을 주지 않습니다.
+          </p>
+          <div>
+            <label style="font-size:12px;">시장은 이 회사를 무엇으로 보는가</label>
+            <input type="text" id="thesis_market" placeholder="예: 단순 반도체 장비주" style="margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size:12px;">나는 어떤 병목 기업으로 보는가</label>
+            <input type="text" id="thesis_mine" placeholder="예: AI 투자 필수 공정 병목주" style="margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size:12px;">차이의 근거 (수주/마진/점유율/기술/밸류에이션 중 선택)</label>
+            <input type="text" id="thesis_basis" placeholder="예: 수주잔고 18개월 + 업종 대비 PEG 할인" style="margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size:12px;">격차 해소 촉매</label>
+            <input type="text" id="thesis_catalyst" placeholder="예: Q3 실적발표, 신규 고객 공시" style="margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size:12px;">변별 명제 강도</label>
+            <select id="thesis_strength" style="margin-top:4px;">
+              <option value="">— 선택 —</option>
+              <option value="강함">강함</option>
+              <option value="보통">보통</option>
+              <option value="약함">약함</option>
+              <option value="불가">불가</option>
+            </select>
+          </div>
+        </div>
+      </details>
+
       <div style="margin-bottom:12px;">
         <label>메모 (선택)</label>
         <textarea id="unified_memo" rows="2" placeholder="예: Perplexity의 OPM 값을 채택함, PEG는 Finviz 기준"></textarea>
@@ -1161,7 +1213,7 @@ function scoreVisibility(inp) {
 // ===== 수익성 채점 (20점, v2 비례환산) =====
 function scoreProfitability(inp) {
   const items = [
-    { max: 8, has: isFilled(inp.fwdOpm),    score: () => Math.max(0, Math.min(8, 8 * (inp.fwdOpm / 35.0))) },
+    { max: 8, has: isFilled(inp.fwdOpm),    score: () => { const v = inp.fwdOpm; return v>=35?8:v>=25?6:v>=15?4:v>=5?2:0; } },
     { max: 6, has: isFilled(inp.fcfMargin), score: () => { const v = inp.fcfMargin; return v>=25?6:v>=15?4:v>=5?2:v>=0?1:0; } },
     { max: 4, has: isFilled(inp.opmYoY),    score: () => { const v = inp.opmYoY;    return v>=5?4:v>=2?3:v>=0?2:v>=-3?1:0; } },
     { max: 2, has: isFilled(inp.roic),      score: () => { const v = inp.roic;      return v>=20?2:v>=10?1:0; } },
@@ -1536,6 +1588,33 @@ function buildResultText(ticker, name, s1inp, s1res, s1verdict, s2inp, s2res, in
     `${integrated.label}`,
     integrated.reason,
   ];
+  // 철학 필터 — 6대 병목 질문
+  const phil = getQ6Values();
+  const philHasAny = Q6_DEFS.some(q => phil[q.key]);
+  if (philHasAny) {
+    lines.push(``, `[철학 필터 — 6대 병목 질문]`);
+    Q6_DEFS.forEach(q => {
+      const val  = phil[q.key]        || '—';
+      const note = phil[q.key + '_note'] || '';
+      lines.push(`  ${q.label} → ${val}${note ? ` (${note})` : ''}`);
+    });
+    const yesCount = Q6_DEFS.filter(q => phil[q.key] === '예').length;
+    const noCount  = Q6_DEFS.filter(q => phil[q.key] === '아니오').length;
+    lines.push(`  요약: 예 ${yesCount}개 / 아니오 ${noCount}개 / 전체 6개`);
+  }
+
+  // 변별 명제
+  const thesis = getThesisValues();
+  const thesisHasAny = thesis.market || thesis.mine || thesis.basis || thesis.catalyst || thesis.strength;
+  if (thesisHasAny) {
+    lines.push(``, `[변별 명제]`);
+    if (thesis.market)   lines.push(`  시장 인식: ${thesis.market}`);
+    if (thesis.mine)     lines.push(`  나의 가설: ${thesis.mine}`);
+    if (thesis.basis)    lines.push(`  차이 근거: ${thesis.basis}`);
+    if (thesis.catalyst) lines.push(`  격차 촉매: ${thesis.catalyst}`);
+    if (thesis.strength) lines.push(`  변별 명제 강도: ${thesis.strength}`);
+  }
+
   if (memo) lines.push(``, `메모: ${memo}`);
   return lines.join('\n');
 }
@@ -1719,6 +1798,9 @@ function renderUnifiedResult(ticker, name, s1inp, s1res, s1verdict, s2inp, s2res
 
     ${deltaHtml ? `<div style="margin-bottom:12px;">${deltaHtml}</div>` : ''}
 
+    ${buildPhilosophyResultHtml()}
+    ${buildThesisResultHtml()}
+
     <div class="flex-end" style="margin-top:14px; gap:8px;">
       <button class="secondary" id="btn_copy_result">결과 텍스트 복사</button>
       <button class="accent" id="btn_save_record">판정 기록 저장</button>
@@ -1771,6 +1853,8 @@ function renderUnifiedResult(ticker, name, s1inp, s1res, s1verdict, s2inp, s2res
         stage2DataGap: { confidenceRatio: s2res.confidenceRatio, quality: s2res.confidenceLevel, missingRisk: s2res.missingRiskLabels },
         integratedResult: integrated,
         aiRawTexts, memo,
+        philosophy: getQ6Values(),
+        thesis:     getThesisValues(),
       });
       const conf = document.getElementById('save_confirm');
       if (saved) {
@@ -2435,7 +2519,159 @@ document.getElementById('btn_delete_ticker')?.addEventListener('click', () => {
 //  F. saveUnifiedRecord 연결 확인 (STEP05 저장 버튼이 이미 typeof 체크 포함)
 //     앱 초기화 시 기록 탭 초기 렌더
 // ─────────────────────────────────────────────
+// ================================================================
+//  STEP08 — 철학 필터 (6대 질문) + 변별 명제 JS
+// ================================================================
+
+const Q6_DEFS = [
+  { key: 'q_essential',   label: '없어서는 안 되는가?' },
+  { key: 'q_pricing',     label: '가격을 올릴 수 있는가?' },
+  { key: 'q_waitlist',    label: '고객이 기다리는가?' },
+  { key: 'q_moat',        label: '경쟁자가 쉽게 따라오기 어려운가?' },
+  { key: 'q_valuation',   label: '아직 시장이 과하게 반영하지 않았는가?' },
+  { key: 'q_compounding', label: '시간이 지날수록 더 강해지는가?' },
+];
+const Q6_OPTIONS = ['예', '부분', '아니오', '확인 필요'];
+
+function initQ6Fields() {
+  const container = document.getElementById('q6_fields');
+  if (!container) return;
+  container.innerHTML = Q6_DEFS.map(q => `
+    <div style="display:flex; flex-direction:column; gap:4px; padding:8px; background:var(--bg-secondary,#181c27); border-radius:6px; border:1px solid var(--border,#2a2f45);">
+      <div style="font-size:12px; font-weight:600; color:var(--text,#e2e6f0);">${escapeHTML(q.label)}</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        ${Q6_OPTIONS.map(opt => `
+          <label style="font-size:11px; display:flex; align-items:center; gap:3px; cursor:pointer;">
+            <input type="radio" name="${q.key}" value="${opt}" style="accent-color:var(--accent,#4f7aff);">
+            ${opt}
+          </label>`).join('')}
+      </div>
+      <input type="text" id="${q.key}_note" placeholder="한 줄 근거 (선택)" style="font-size:11px; margin-top:2px; padding:4px 8px;">
+    </div>
+  `).join('');
+}
+
+function getQ6Values() {
+  const result = {};
+  Q6_DEFS.forEach(q => {
+    const checked = document.querySelector(`input[name="${q.key}"]:checked`);
+    result[q.key] = checked ? checked.value : '';
+    result[q.key + '_note'] = document.getElementById(q.key + '_note')?.value || '';
+  });
+  return result;
+}
+
+function setQ6Values(data) {
+  if (!data) return;
+  Q6_DEFS.forEach(q => {
+    const val = data[q.key];
+    if (val) {
+      const radio = document.querySelector(`input[name="${q.key}"][value="${val}"]`);
+      if (radio) radio.checked = true;
+    }
+    const noteEl = document.getElementById(q.key + '_note');
+    if (noteEl && data[q.key + '_note']) noteEl.value = data[q.key + '_note'];
+  });
+}
+
+function resetQ6Fields() {
+  Q6_DEFS.forEach(q => {
+    document.querySelectorAll(`input[name="${q.key}"]`).forEach(r => r.checked = false);
+    const noteEl = document.getElementById(q.key + '_note');
+    if (noteEl) noteEl.value = '';
+  });
+}
+
+function getThesisValues() {
+  return {
+    market:    document.getElementById('thesis_market')?.value    || '',
+    mine:      document.getElementById('thesis_mine')?.value      || '',
+    basis:     document.getElementById('thesis_basis')?.value     || '',
+    catalyst:  document.getElementById('thesis_catalyst')?.value  || '',
+    strength:  document.getElementById('thesis_strength')?.value  || '',
+  };
+}
+
+function setThesisValues(data) {
+  if (!data) return;
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+  set('thesis_market',   data.market);
+  set('thesis_mine',     data.mine);
+  set('thesis_basis',    data.basis);
+  set('thesis_catalyst', data.catalyst);
+  set('thesis_strength', data.strength);
+}
+
+function resetThesisFields() {
+  ['thesis_market','thesis_mine','thesis_basis','thesis_catalyst'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const sel = document.getElementById('thesis_strength'); if (sel) sel.value = '';
+}
+
+function buildPhilosophyResultHtml() {
+  const vals = getQ6Values();
+  const hasAny = Q6_DEFS.some(q => vals[q.key]);
+  if (!hasAny) return '';
+
+  const ICON = { '예': '✅', '부분': '🔶', '아니오': '❌', '확인 필요': '❓', '': '—' };
+  const yesCount = Q6_DEFS.filter(q => vals[q.key] === '예').length;
+  const noCount  = Q6_DEFS.filter(q => vals[q.key] === '아니오').length;
+
+  const rows = Q6_DEFS.map(q => {
+    const ans = vals[q.key] || '—';
+    const note = vals[q.key + '_note'];
+    return `<tr>
+      <td style="font-size:12px;">${escapeHTML(q.label)}</td>
+      <td style="font-size:12px; font-weight:600;">${ICON[ans] || ''} ${escapeHTML(ans)}</td>
+      <td style="font-size:11px; color:var(--text-secondary);">${note ? escapeHTML(note) : ''}</td>
+    </tr>`;
+  }).join('');
+
+  const warn = noCount >= 3
+    ? `<div style="margin-top:8px;padding:8px;background:#2d1a1a;border-left:3px solid var(--danger);border-radius:4px;font-size:12px;color:var(--danger);">⚠ "아니오" ${noCount}개 — 병목 후보로 보기 어렵습니다. 구조 재검토를 권장합니다.</div>`
+    : '';
+
+  return `
+    <div class="result-section-title" style="margin-top:20px;">🔍 철학 필터 — 6대 병목 질문</div>
+    <div style="font-size:11px; color:var(--text-secondary); margin-bottom:8px;">예 ${yesCount}개 / 아니오 ${noCount}개 (점수 미반영)</div>
+    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+      <thead><tr style="border-bottom:1px solid var(--border);">
+        <th style="text-align:left; padding:4px 6px; font-size:11px; color:var(--text-secondary);">질문</th>
+        <th style="text-align:left; padding:4px 6px; font-size:11px; color:var(--text-secondary);">답</th>
+        <th style="text-align:left; padding:4px 6px; font-size:11px; color:var(--text-secondary);">근거</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${warn}
+  `;
+}
+
+function buildThesisResultHtml() {
+  const t = getThesisValues();
+  if (!t.market && !t.mine && !t.strength) return '';
+
+  const strengthColor = { '강함': 'var(--accent)', '보통': 'var(--warn)', '약함': 'var(--danger)', '불가': 'var(--danger)' };
+  const color = strengthColor[t.strength] || 'var(--text-secondary)';
+  const weakWarn = (t.strength === '약함' || t.strength === '불가')
+    ? `<div style="margin-top:8px;padding:8px;background:#2d1a1a;border-left:3px solid var(--danger);border-radius:4px;font-size:12px;color:var(--danger);">⚠ 변별 명제 강도 "${t.strength}" — 좋은 회사 구경에 가까울 수 있습니다. 투자 아이디어로 발전시키려면 시장과의 차이를 더 구체화하세요.</div>`
+    : '';
+
+  return `
+    <div class="result-section-title" style="margin-top:20px;">💡 변별 명제</div>
+    <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
+      ${t.market    ? `<div><span style="color:var(--text-secondary);">시장 인식:</span> ${escapeHTML(t.market)}</div>` : ''}
+      ${t.mine      ? `<div><span style="color:var(--text-secondary);">나의 가설:</span> ${escapeHTML(t.mine)}</div>` : ''}
+      ${t.basis     ? `<div><span style="color:var(--text-secondary);">차이 근거:</span> ${escapeHTML(t.basis)}</div>` : ''}
+      ${t.catalyst  ? `<div><span style="color:var(--text-secondary);">격차 촉매:</span> ${escapeHTML(t.catalyst)}</div>` : ''}
+      ${t.strength  ? `<div><span style="color:var(--text-secondary);">명제 강도:</span> <strong style="color:${color};">${escapeHTML(t.strength)}</strong></div>` : ''}
+    </div>
+    ${weakWarn}
+  `;
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+  initQ6Fields();
   // 기록탭이 초기 활성화 상태인 경우에만 렌더 (보통은 통합판정 탭이 기본)
   if (document.getElementById('tab-records')?.classList.contains('active')) {
     renderRecordsTab();
@@ -2491,6 +2727,10 @@ function resetUnifiedForm() {
   // 메모 초기화
   const memo = document.getElementById('unified_memo'); if (memo) memo.value = '';
 
+  // 철학 필터 + 변별 명제 초기화
+  resetQ6Fields();
+  resetThesisFields();
+
   // 판정 버튼 비활성화 + 경고 초기화
   const judgeBtn = document.getElementById('btn_unified_judge');
   if (judgeBtn) judgeBtn.disabled = true;
@@ -2530,6 +2770,10 @@ function loadUnifiedRecordForEdit(record) {
   set('u_layer',    record.layer    || '');
   set('u_baseDate', record.baseDate || '');
   set('unified_memo', record.memo   || '');
+
+  // 철학 필터 + 변별 명제 복원
+  if (record.philosophy) setQ6Values(record.philosophy);
+  if (record.thesis)     setThesisValues(record.thesis);
 
   // 이전 AI 답변 복원 (있는 경우)
   if (record.aiRawTexts) {
