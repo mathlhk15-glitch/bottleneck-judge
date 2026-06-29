@@ -1151,9 +1151,9 @@ function scoreBottleneck(inp) {
 // ===== 수요 가시성 채점 (15점, v2 비례환산) =====
 function scoreVisibility(inp) {
   const items = [
-    { max: 6, has: isFilled(inp.backlogMo), score: () => { const v = inp.backlogMo; return v>=12?6:v>=6?4:v>=3?2:0; } },
-    { max: 5, has: isFilled(inp.leadMo),    score: () => { const v = inp.leadMo;    return v>=12?5:v>=6?3:v>=3?1:0; } },
-    { max: 4, has: isFilled(inp.convSpeed), score: () => { const v = inp.convSpeed; return v<=3?4:v<=6?3:v<=12?2:1; } },
+    { max: 6, has: isFilled(inp.backlogMo), score: () => { const v = inp.backlogMo; return v>=18?6:v>=12?5:v>=6?4:v>=3?2:0; } },
+    { max: 5, has: isFilled(inp.leadMo),    score: () => { const v = inp.leadMo;    return v>=12?5:v>=6?4:v>=3?2:0; } },
+    { max: 4, has: isFilled(inp.convSpeed), score: () => { const v = inp.convSpeed; return v<=1?4:v<=3?3:v<=6?2:v<=12?1:0; } },
   ];
   return proRate(items, 15);
 }
@@ -1162,9 +1162,9 @@ function scoreVisibility(inp) {
 function scoreProfitability(inp) {
   const items = [
     { max: 8, has: isFilled(inp.fwdOpm),    score: () => Math.max(0, Math.min(8, 8 * (inp.fwdOpm / 35.0))) },
-    { max: 6, has: isFilled(inp.fcfMargin), score: () => { const v = inp.fcfMargin; return v>=20?6:v>=10?4:v>=0?2:0; } },
-    { max: 4, has: isFilled(inp.opmYoY),    score: () => { const v = inp.opmYoY;    return v>=3?4:v>=-1?2:v>=-3?1:0; } },
-    { max: 2, has: isFilled(inp.roic),      score: () => { const v = inp.roic;      return v>=25?2:v>=15?1:0; } },
+    { max: 6, has: isFilled(inp.fcfMargin), score: () => { const v = inp.fcfMargin; return v>=25?6:v>=15?4:v>=5?2:v>=0?1:0; } },
+    { max: 4, has: isFilled(inp.opmYoY),    score: () => { const v = inp.opmYoY;    return v>=5?4:v>=2?3:v>=0?2:v>=-3?1:0; } },
+    { max: 2, has: isFilled(inp.roic),      score: () => { const v = inp.roic;      return v>=20?2:v>=10?1:0; } },
   ];
   return proRate(items, 20);
 }
@@ -1172,8 +1172,8 @@ function scoreProfitability(inp) {
 // ===== 밸류에이션 채점 (15점, v2 비례환산) =====
 function scoreValuation(inp) {
   const items = [
-    { max: 10, has: isFilled(inp.fwdPeg),   score: () => { const v = inp.fwdPeg; return v<=0?0:v<=1?10:v<=1.5?8.5:v<=2.5?6:v<=4?3:1; } },
-    { max: 2,  has: isFilled(inp.peDiff),   score: () => { const v = inp.peDiff; return v<=-30?2:v<=0?1:0; } },
+    { max: 10, has: isFilled(inp.fwdPeg),   score: () => { const v = inp.fwdPeg; return v<=0?0:v<0.8?10:v<1.2?8:v<1.5?6:v<2.0?4:v<3.0?2:0; } },
+    { max: 2,  has: isFilled(inp.peDiff),   score: () => { const v = inp.peDiff; return v<=-15?2:v<=15?1:0; } },
     { max: 3,  has: isFilled(inp.histBand), score: () => ({ low:3, mid:1.5, high:0.5, peak_out_risk:0 }[inp.histBand] ?? 0) },
   ];
   const base = proRate(items, 15);
@@ -1236,10 +1236,10 @@ function scoreFinancial(inp) {
   const items = [
     { max: 6, has: isFilled(inp.netCash) || isFilled(inp.de), score: () => {
         if (inp.netCash === 'true' || inp.netCash === true) return 6;
-        if (isFilled(inp.de)) { const v = inp.de; return v<=0.3?5:v<=1?3:v<=1.5?1:0; }
+        if (isFilled(inp.de)) { const v = inp.de; return v<=0.3?5:v<=0.7?4:v<=1.0?2:0; }
         return 0;
       } },
-    { max: 4, has: isFilled(inp.icr), score: () => { const v = inp.icr; return v>=10?4:v>=5?3:v>=3?2:v>=1.5?1:0; } },
+    { max: 4, has: isFilled(inp.icr), score: () => { const v = inp.icr; return v>=10?4:v>=5?3:v>=2?2:v>=1?1:0; } },
   ];
   return proRate(items, 10);
 }
@@ -1256,7 +1256,7 @@ function scoreRisk(inp) {
   const gov   = clamp(inp.govRisk   ?? 0, 0, 2);
 
   let customerPenalty = 0;
-  if (isFilled(cc)) customerPenalty = cc >= 70 ? 4 : cc >= 50 ? 2 : 0;
+  if (isFilled(cc)) customerPenalty = cc >= 50 ? 4 : cc >= 30 ? 2 : 0;
 
   const missingRiskLabels = [];
   if (!isFilled(cc))            missingRiskLabels.push('고객집중도');
@@ -1334,15 +1334,36 @@ function scoreStock(inp) {
   else if (confidenceRatio >= 60) { confidenceLevel = '보통';    gradeSuffix = ' (주의)'; }
   else if (confidenceRatio >= 40) { confidenceLevel = '낮음';    gradeSuffix = ' 참고'; }
   else                             { confidenceLevel = '매우 낮음'; gradeSuffix = ''; }
+
+  // 자료 신뢰도에 따른 등급 상한 적용
+  let confidenceCap = null;
+  let confidenceCapMsg = null;
+  if (confidenceRatio >= 80) {
+    confidenceCap = null; // 제한 없음
+  } else if (confidenceRatio >= 60) {
+    confidenceCap = 'A';
+    confidenceCapMsg = '자료 신뢰도 부족으로 등급 상한 적용 (최대 A)';
+  } else if (confidenceRatio >= 40) {
+    confidenceCap = 'B';
+    confidenceCapMsg = '자료 신뢰도 부족으로 등급 상한 적용 (최대 B) — 확인된 항목만으로 계산한 참고 점수, 리스크 감점 과소 반영 가능성';
+  }
+  // confidenceRatio < 40 는 gradeDisplayOverride로 별도 처리
+
+  // 신뢰도 상한 적용
+  let gradeAfterConfidence = grade;
+  if (confidenceCap !== null) {
+    gradeAfterConfidence = applyGate(grade, confidenceCap);
+  }
   // confidenceRatio < 40 인 경우는 등급 자체보다 "자료 부족"이 메시지의 핵심이 되도록
   // 화면 렌더링 쪽에서 별도 처리한다(gradeDisplayOverride).
   const gradeDisplayOverride = confidenceRatio < 40 ? `자료 부족 (참고점수 ${final})` : null;
-  const gradeDisplay = gradeDisplayOverride || (grade + gradeSuffix);
+  const gradeDisplay = gradeDisplayOverride || (gradeAfterConfidence + gradeSuffix);
 
   return {
     bottleneck, visibility, profitability, valuation, financial, riskPenalty,
-    base90, base, final, cap, raw, grade,
+    base90, base, final, cap, raw, grade: gradeAfterConfidence,
     confidenceRatio, confidenceLevel, gradeDisplay,
+    confidenceCapMsg,
     missingRiskLabels: risk.missingRiskLabels,
     // 밸류에이션 cap 보조 정보
     capApplied: val.capApplied,
@@ -1581,6 +1602,7 @@ function renderUnifiedResult(ticker, name, s1inp, s1res, s1verdict, s2inp, s2res
       </div>
       누락된 항목이 있는 카테고리는 확인된 값만으로 비례 환산했습니다(추측해서 채우지 않았습니다).
       ${s2res.confidenceRatio < 40 ? '<br><strong>자료가 크게 부족하여 이 등급은 확정 등급이 아니라 참고용입니다.</strong>' : ''}
+      ${s2res.confidenceCapMsg ? `<br><span style="color:var(--warn);font-weight:600;">⚠ ${escapeHTML(s2res.confidenceCapMsg)}</span>` : ''}
     ` : 'ⓘ 사업병목성·수요가시성·수익성·밸류에이션·재무안정성 자료는 모두 확인되었습니다.';
     s2DataGapHtml = `<div class="gate-note">${confidenceBlock}${riskNote}</div>`;
   }
