@@ -46,17 +46,17 @@
 
 /* ===== 기본 디자인 토큰 (기존 유지) ===== */
 :root {
-  --bg: #FBF7EF;
+  --bg: #F4F7FC;
   --bg-card: #FFFFFF;
-  --bg-secondary: #F1E9D9;
-  --border: #e9ddc9;
-  --border-strong: #d9c79f;
-  --text: #2a1f14;
-  --text-secondary: #5a4c3c;
-  --text-tertiary: #9a8a72;
-  --accent: #1B7A5E;
-  --warn: #B0631F;
-  --danger: #A23B3B;
+  --bg-secondary: #EAF1FB;
+  --border: #DEE7F2;
+  --border-strong: #C2D2E6;
+  --text: #1A2233;
+  --text-secondary: #50607A;
+  --text-tertiary: #8FA0B8;
+  --accent: #2563EB;
+  --warn: #D97706;
+  --danger: #DC2626;
   --mono: 'IBM Plex Mono', monospace;
   --serif: 'Spectral', serif;
   --sans: 'IBM Plex Sans KR', sans-serif;
@@ -157,12 +157,12 @@ button:hover:not(:disabled) { opacity: 0.85; }
 .metric-card .label { font-size: 11px; color: var(--text-secondary); font-family: var(--mono); }
 .metric-card .value { font-size: 20px; font-weight: 600; font-family: var(--serif); }
 .gate-note {
-  background: #FBEFE0; border: 1px solid #E3C896; border-radius: 8px;
-  padding: 10px 14px; font-size: 13px; color: #7A5A1E; margin-bottom: 16px; line-height: 1.5;
+  background: #FEF3DC; border: 1px solid #F3CE7E; border-radius: 8px;
+  padding: 10px 14px; font-size: 13px; color: #92600E; margin-bottom: 16px; line-height: 1.5;
 }
 .danger-note {
-  background: #FBE4E4; border: 1px solid #E3A0A0; border-radius: 8px;
-  padding: 10px 14px; font-size: 13px; color: #7A1E1E; margin-bottom: 16px; line-height: 1.5;
+  background: #FDECEC; border: 1px solid #F0A8A8; border-radius: 8px;
+  padding: 10px 14px; font-size: 13px; color: #A12525; margin-bottom: 16px; line-height: 1.5;
 }
 
 /* ===== 등급 칩 ===== */
@@ -2150,10 +2150,10 @@ const INTEGRATED_LABEL_COLOR = {
   '관찰 후보':                '#B0631F',
   '과열·경쟁 리스크 확인 필요': '#B0631F',
   '보류/제외':                '#A23B3B',
-  '추가 검토 필요':           '#5a4c3c',
+  '추가 검토 필요':           '#50607A',
   '구조는 좋지만 예비신호 자료 부족': '#B0631F',
   '정밀 구조 후보 / 예비자료 확인 필요': '#B0631F',
-  '예비신호 자료 부족':       '#9a8a72',
+  '예비신호 자료 부족':       '#8FA0B8',
 };
 
 // 날짜 포맷 (YYYY-MM-DD HH:mm)
